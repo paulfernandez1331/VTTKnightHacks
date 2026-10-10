@@ -146,3 +146,6 @@ button.danger { margin-top: 12px; border-color: var(--monster); }
   .layout { flex-direction: column; }
   .panel { width: 100%; max-height: none; border-left: 0; border-top: 1px solid #364150; }
 }
+
+.turn { margin: 0; padding: 4px 8px; font-size: 14px; border-left: 4px solid #44505e; }
+.turn.acting { border-left-color: var(--brass); background: var(--ink); font-weight: 600; }

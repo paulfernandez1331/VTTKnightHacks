@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node combat/test.js"
+    "test": "node combat/test.js && node combat/initiative-test.js"
   },
   "dependencies": {
     "express": "^4.19.2",
