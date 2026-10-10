@@ -1,9 +1,9 @@
 # Battlemat
 
-This is the KnightHacks virtual tabletop. The branch with the 2024 creature data and the combat board is `TestingCombat`. The default branch on GitHub is `InitialTest`, which is the earlier map. Clone this branch:
+This is the KnightHacks virtual tabletop. The 2024 creature data and the combat board are on `main`. Clone it:
 
 ```bash
-git clone -b TestingCombat https://github.com/AndrewASO/VTTKnightHacks
+git clone https://github.com/paulfernandez1331/VTTKnightHacks
 cd VTTKnightHacks
 npm install
 npm start
@@ -92,4 +92,4 @@ The text from the System Reference Document 5.1 and System Reference Document 5.
 
 - Do not push the `dnd5e/` snapshot to https://github.com/foundryvtt/dnd5e.
 - Do not add the token images, `ui/official` artwork, spell-tier icons, or school icons to this repository.
-- Do not treat `InitialTest` as the branch that has this combat data. This work is on `TestingCombat`.
+- Do not push this project back to https://github.com/AndrewASO/VTTKnightHacks. This copy lives at https://github.com/paulfernandez1331/VTTKnightHacks on `main`.
