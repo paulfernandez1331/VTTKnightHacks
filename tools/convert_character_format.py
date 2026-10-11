@@ -455,6 +455,426 @@ def extract_features(character, total_level):
 
 
 # --------------------------------------------------
+# Spells and other sheet actions
+# --------------------------------------------------
+
+ABILITY_IDS = {
+    1: "str",
+    2: "dex",
+    3: "con",
+    4: "int",
+    5: "wis",
+    6: "cha",
+}
+
+# Ids from the character-service payload. Shield is 4. Fire Bolt is 1.
+ACTIVATION_IDS = {
+    1: "action",
+    3: "bonus",
+    4: "reaction",
+}
+
+# 1 bludgeoning, 2 piercing, and 3 slashing are the physical types on the sheet.
+DAMAGE_TYPE_IDS = {
+    1: "bludgeoning",
+    2: "piercing",
+    3: "slashing",
+    4: "necrotic",
+    5: "acid",
+    6: "cold",
+    7: "fire",
+    8: "force",
+    9: "lightning",
+    10: "poison",
+    11: "psychic",
+    12: "radiant",
+    13: "thunder",
+}
+
+AREA_TYPES = {
+    "cone": "cone",
+    "cube": "cube",
+    "line": "line",
+    "sphere": "sphere",
+    "square": "square",
+    "cylinder": "cylinder",
+}
+
+
+def activation_name(node):
+    """
+    Turn a D&D Beyond activationType into action, bonus, reaction, or special.
+    """
+    activation = node.get("activation") or {}
+    return ACTIVATION_IDS.get(activation.get("activationType"), "special")
+
+
+def spellcasting_ability(character, class_id):
+    """
+    The ability the owning class uses to cast spells.
+
+    A spell with no class falls back to the first class that has one.
+    """
+    fallback = None
+
+    for row in character.get("classes") or []:
+        ability_id = (row.get("definition") or {}).get("spellCastingAbilityId")
+        ability = ABILITY_IDS.get(ability_id)
+        if ability is None:
+            continue
+        if fallback is None:
+            fallback = ability
+        if class_id is not None and row.get("id") == class_id:
+            return ability
+
+    return fallback or "int"
+
+
+def flat_bonus(character, suffix):
+    """
+    Add equipped bonuses such as a +1 grimoire.
+
+    suffix is "spell-attacks" or "spell-save-dc".
+    """
+    modifiers = character.get("modifiers") or {}
+    if not isinstance(modifiers, dict):
+        return 0
+
+    total = 0
+    for group in modifiers.values():
+        if not isinstance(group, list):
+            continue
+        for modifier in group:
+            if not isinstance(modifier, dict) or modifier.get("type") != "bonus":
+                continue
+            sub_type = str(modifier.get("subType") or "")
+            if not sub_type.endswith(suffix):
+                continue
+            amount = modifier.get("fixedValue")
+            if not isinstance(amount, (int, float)):
+                amount = modifier.get("value")
+            if isinstance(amount, (int, float)):
+                total += int(amount)
+
+    return total
+
+
+def spell_is_available(spell):
+    """
+    Prepared spells, always-prepared spells, and cantrips can be clicked.
+
+    An unprepared spellbook entry is left off the sheet.
+    """
+    definition = spell.get("definition") or {}
+    if definition.get("level") == 0:
+        return True
+    if spell.get("alwaysPrepared") or spell.get("prepared"):
+        return True
+    return False
+
+
+def each_spell(character):
+    """
+    Yield (spell, class id) from classSpells and from spells.class/race/item/feat.
+
+    The downloaded sheet keeps the list under classSpells. spells.class is
+    the same shape when that list is filled instead.
+    """
+    seen = set()
+
+    def walk(entries, class_id):
+        for spell in entries or []:
+            if not isinstance(spell, dict):
+                continue
+            if spell.get("definition"):
+                name = (spell["definition"].get("name") or "").strip().lower()
+                if not name or name in seen:
+                    continue
+                seen.add(name)
+                yield spell, class_id
+                continue
+            nested = spell.get("spells")
+            if isinstance(nested, list):
+                yield from walk(nested, spell.get("characterClassId", class_id))
+
+    for group in character.get("classSpells") or []:
+        if isinstance(group, dict):
+            yield from walk(group.get("spells"), group.get("characterClassId"))
+
+    spells = character.get("spells") or {}
+    if isinstance(spells, dict):
+        for key in ("class", "race", "item", "feat", "background"):
+            yield from walk(spells.get(key), None)
+
+
+def dice_at_level(modifier, level, scale_type):
+    """
+    Use a cantrip's character-level die. Slot-level extras stay off the button.
+    """
+    die = modifier.get("die") or {}
+    base = die.get("diceString")
+    if scale_type != "characterlevel":
+        return base
+
+    chosen = None
+    higher = (modifier.get("atHigherLevels") or {}).get("higherLevelDefinitions") or []
+    for row in higher:
+        row_level = row.get("level")
+        text = (row.get("dice") or {}).get("diceString")
+        if not isinstance(row_level, int) or not text:
+            continue
+        if row_level <= level and (chosen is None or row_level >= chosen[0]):
+            chosen = (row_level, text)
+
+    return chosen[1] if chosen else base
+
+
+def damage_parts(definition, level):
+    """
+    Damage dice live on definition.modifiers, type damage, die.diceString.
+    """
+    parts = []
+    scale_type = definition.get("scaleType")
+
+    for modifier in definition.get("modifiers") or []:
+        if not isinstance(modifier, dict) or modifier.get("type") != "damage":
+            continue
+        dice = dice_at_level(modifier, level, scale_type)
+        if not dice:
+            continue
+        parts.append({
+            "dice": str(dice).replace(" ", ""),
+            "type": str(modifier.get("subType") or "untyped").lower(),
+        })
+
+    return parts
+
+
+def area_from_range(range_info):
+    """
+    Build an area when the sheet lists a cone, cube, line, sphere, or square.
+    """
+    if not isinstance(range_info, dict):
+        return None
+
+    kind = AREA_TYPES.get(str(range_info.get("aoeType") or "").lower())
+    size = range_info.get("aoeValue")
+    if size is None:
+        size = range_info.get("aoeSize")
+    if not kind or not isinstance(size, (int, float)) or size <= 0:
+        return None
+
+    origin = str(range_info.get("origin") or "").lower()
+    area_origin = "self" if origin == "self" else "point"
+    return {
+        "type": kind,
+        "size": int(size),
+        "origin": area_origin,
+    }
+
+
+def range_value(range_info):
+    if not isinstance(range_info, dict):
+        return None
+    value = range_info.get("rangeValue")
+    if value is None:
+        value = range_info.get("range")
+    if isinstance(value, (int, float)) and value > 0:
+        return int(value)
+    return None
+
+
+def save_result(description, has_damage):
+    """
+    A damaging save usually deals half. A success that deals nothing does not.
+    """
+    text = remove_html(description).lower()
+    if "half as much" in text or "half damage" in text:
+        return "half"
+    if "no damage" in text:
+        return "none"
+    if has_damage:
+        return "half"
+    return "none"
+
+
+def spell_to_action(spell, character, abilities, level, proficiency, class_id):
+    """
+    A spell with an attack, a save, or damage dice becomes a button.
+
+    Anything else returns None and the caller keeps it as a feature.
+    """
+    definition = spell.get("definition") or {}
+    name = (definition.get("name") or "").strip()
+    if not name:
+        return None
+
+    outer_range = spell.get("range") if isinstance(spell.get("range"), dict) else {}
+    inner_range = definition.get("range") if isinstance(definition.get("range"), dict) else {}
+    chosen_range = outer_range if outer_range.get("aoeType") or outer_range.get("rangeValue") else inner_range
+    if not chosen_range.get("aoeType") and inner_range.get("aoeType"):
+        chosen_range = inner_range
+
+    parts = damage_parts(definition, level)
+    attacks = bool(definition.get("requiresAttackRoll") or definition.get("attackType"))
+    saves = bool(definition.get("requiresSavingThrow") or definition.get("saveDcAbilityId"))
+    area = area_from_range(chosen_range)
+    if not attacks and not saves and not parts:
+        return None
+
+    ability = spellcasting_ability(character, class_id)
+    action = {
+        "name": name,
+        "img": definition.get("avatarUrl") or spell.get("avatarUrl"),
+        "kind": "spell",
+        "activation": activation_name(spell if spell.get("activation") else definition),
+        "damage": parts,
+    }
+
+    if area:
+        action["area"] = area
+        if area["origin"] == "point":
+            distance = range_value(chosen_range) or range_value(inner_range)
+            if distance:
+                action["range"] = {"normal": distance, "long": distance}
+    elif attacks or not area:
+        distance = range_value(chosen_range) or range_value(inner_range)
+        if distance:
+            action["range"] = {"normal": distance, "long": distance}
+        elif str((chosen_range or inner_range).get("origin") or "").lower() in ("touch", "self"):
+            action["reach"] = 5
+
+    if saves:
+        save_ability = ABILITY_IDS.get(definition.get("saveDcAbilityId"), ability)
+        modifier = ability_modifier(abilities.get(ability, 10))
+        action["saveAbility"] = save_ability
+        action["saveDc"] = 8 + proficiency + modifier + flat_bonus(character, "spell-save-dc")
+        action["onSave"] = save_result(definition.get("description"), bool(parts))
+    elif attacks:
+        action["attackAbility"] = ability
+        bonus = flat_bonus(character, "spell-attacks")
+        if bonus:
+            action["attackBonus"] = bonus
+    elif parts:
+        action["autoHit"] = True
+
+    return action
+
+
+def sheet_action_to_button(entry, character, abilities, level, proficiency):
+    """
+    A class, race, or feat action with an attack, a save, or damage dice.
+    """
+    if not isinstance(entry, dict):
+        return None
+
+    name = (entry.get("name") or "").strip()
+    if not name:
+        return None
+
+    dice = entry.get("dice") if isinstance(entry.get("dice"), dict) else {}
+    dice_string = dice.get("diceString")
+    save_id = entry.get("saveStatId")
+    fixed_hit = entry.get("fixedToHit")
+    area = area_from_range(entry.get("range") or {})
+    if not dice_string and save_id is None and fixed_hit is None and not area:
+        return None
+
+    damage_type = DAMAGE_TYPE_IDS.get(entry.get("damageTypeId"), "untyped")
+    action = {
+        "name": name,
+        "kind": "attack",
+        "activation": activation_name(entry),
+        "damage": [],
+    }
+    if dice_string:
+        action["damage"].append({
+            "dice": str(dice_string).replace(" ", ""),
+            "type": damage_type,
+        })
+
+    if area:
+        action["area"] = area
+
+    distance = range_value(entry.get("range") or {})
+    long_distance = (entry.get("range") or {}).get("longRange")
+    attack_type = entry.get("attackTypeRange")
+
+    if save_id is not None or entry.get("fixedSaveDc") is not None:
+        ability = spellcasting_ability(character, None)
+        modifier = ability_modifier(abilities.get(ability, 10))
+        action["kind"] = "spell"
+        action["saveAbility"] = ABILITY_IDS.get(save_id, ability)
+        if isinstance(entry.get("fixedSaveDc"), (int, float)):
+            action["saveDc"] = int(entry["fixedSaveDc"])
+        else:
+            action["saveDc"] = 8 + proficiency + modifier + flat_bonus(character, "spell-save-dc")
+        action["onSave"] = save_result(entry.get("description"), bool(dice_string))
+    elif isinstance(fixed_hit, (int, float)):
+        action["toHit"] = int(fixed_hit)
+    else:
+        ability_id = entry.get("abilityModifierStatId")
+        if ability_id in ABILITY_IDS and (attack_type == 2 or area):
+            action["kind"] = "spell"
+            action["attackAbility"] = ABILITY_IDS[ability_id]
+        else:
+            action["kind"] = "weapon"
+            action["properties"] = ["ranged"] if attack_type == 2 else []
+
+    if attack_type == 2 or (isinstance(long_distance, (int, float)) and long_distance > 0):
+        normal = distance or 5
+        far = int(long_distance) if isinstance(long_distance, (int, float)) and long_distance > 0 else normal
+        action["range"] = {"normal": normal, "long": far}
+    elif distance and not (area and area["origin"] == "self"):
+        action["reach"] = distance
+    elif action["kind"] == "weapon":
+        action["reach"] = 5
+
+    return action
+
+
+def extract_spell_actions(character, abilities, level, proficiency):
+    """
+    Split available spells into buttons and feature paragraphs.
+    """
+    actions = []
+    features = []
+
+    for spell, class_id in each_spell(character):
+        if not spell_is_available(spell):
+            continue
+        definition = spell.get("definition") or {}
+        action = spell_to_action(spell, character, abilities, level, proficiency, class_id)
+        if action:
+            actions.append(action)
+            continue
+        features.append({
+            "name": definition.get("name"),
+            "summary": remove_html(definition.get("snippet") or definition.get("description")),
+        })
+
+    return actions, features
+
+
+def extract_sheet_actions(character, abilities, level, proficiency):
+    """
+    Buttons from data.actions that are attacks, saves, or damage.
+    """
+    actions = []
+    root = character.get("actions") or {}
+    if not isinstance(root, dict):
+        return actions
+
+    for key in ("race", "class", "feat", "item", "background"):
+        for entry in root.get(key) or []:
+            action = sheet_action_to_button(entry, character, abilities, level, proficiency)
+            if action:
+                actions.append(action)
+
+    return actions
+
+
+# --------------------------------------------------
 # Main conversion
 # --------------------------------------------------
 
@@ -468,6 +888,13 @@ def convert_character(ddb_json):
     class_text, total_level = extract_classes(character)
     hp = calculate_hp(character, abilities, total_level)
     ac = calculate_ac(character, abilities)
+    proficiency = proficiency_bonus(total_level)
+    spell_actions, spell_features = extract_spell_actions(
+        character, abilities, total_level, proficiency
+    )
+    sheet_actions = extract_sheet_actions(
+        character, abilities, total_level, proficiency
+    )
 
     character_id = str(character.get("id", "unknown"))
     name = character.get("name", "Unnamed Character")
@@ -506,7 +933,7 @@ def convert_character(ddb_json):
         "ac": ac,
         "hp": hp["maximum"],
         "speed": walking_speed,
-        "proficiency": proficiency_bonus(total_level),
+        "proficiency": proficiency,
         "abilities": abilities,
         "resist": [],
         "immune": [],
@@ -514,11 +941,24 @@ def convert_character(ddb_json):
         "conditionImmune": [],
         "token": character.get("decorations", {}).get("avatarUrl"),
         "img": character.get("decorations", {}).get("avatarUrl"),
-        "actions": extract_weapon_actions(character),
+        "actions": extract_weapon_actions(character) + spell_actions + sheet_actions,
         "class": class_text,
         "race": race_name,
         "features": extract_features(character, total_level),
     }
+
+    seen_features = {
+        feature["name"].lower()
+        for feature in converted["features"]
+        if feature.get("name")
+    }
+    for feature in spell_features:
+        add_feature(
+            converted["features"],
+            seen_features,
+            feature["name"],
+            feature["summary"],
+        )
 
     return converted
 

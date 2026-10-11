@@ -403,6 +403,13 @@ const redBreath = catalog.mmAdultRedDragon.actions.find((action) => action.name 
 if (!redBreath || !redBreath.area || redBreath.area.type !== 'cone' || redBreath.area.size !== 60 || redBreath.area.origin !== 'self') {
   fail(`Adult Red Fire Breath is ${JSON.stringify(redBreath && redBreath.area)}`);
 }
+if (redBreath.uses !== 1 || redBreath.recharge !== 5 || redBreath.useKey !== 'Fire Breath') {
+  fail(`Adult Red Fire Breath recharge is ${JSON.stringify({ uses: redBreath.uses, recharge: redBreath.recharge, useKey: redBreath.useKey })}`);
+}
+const youngBreath = catalog.mmYoungRedDragon.actions.find((action) => action.name === 'Fire Breath');
+if (!youngBreath || youngBreath.uses !== 1 || youngBreath.recharge !== 6 || youngBreath.useKey !== 'Fire Breath') {
+  fail(`Young Red Fire Breath recharge is ${JSON.stringify(youngBreath && { uses: youngBreath.uses, recharge: youngBreath.recharge, useKey: youngBreath.useKey })}`);
+}
 const banish = catalog.mmAdultGoldDrago.actions.find((action) => action.name === 'Banish');
 if (!banish || banish.area || banish.reach || !banish.range || banish.range.normal !== 120) {
   fail(`Banish is ${JSON.stringify(banish && { area: banish.area, range: banish.range, reach: banish.reach })}`);

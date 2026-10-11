@@ -1479,7 +1479,34 @@ function finish(action, item, activity) {
     if (names.length) action.conditions = names;
   }
   if (!action.activation) action.activation = activationOf(item, activity);
+  attachRecharge(action, item, activity);
   return applySpellShape(action, item);
+}
+
+/**
+ * A breath or other recharge power spends the item's uses and returns on a d6.
+ * The formula is the lowest success, and a missing formula is a 6, matching dnd5e.
+ * @param {object} action
+ * @param {object} item
+ * @param {object} activity
+ */
+function attachRecharge(action, item, activity) {
+  const targets = activity.consumption?.targets ?? [];
+  const spends = targets.some(target => target?.type === "itemUses");
+  if (!spends) return;
+  const recovery = item.system?.uses?.recovery;
+  if (!Array.isArray(recovery)) return;
+  const row = recovery.find(entry => entry?.period === "recharge");
+  if (!row) return;
+  const raw = item.system?.uses?.max;
+  const max = typeof raw === "number" && Number.isInteger(raw)
+    ? raw
+    : (/^\d+$/.test(String(raw ?? "").trim()) ? Number(raw) : null);
+  if (max == null || max < 1) return;
+  const parsed = Number.parseInt(row.formula, 10);
+  action.uses = max;
+  action.recharge = Number.isFinite(parsed) && parsed >= 1 && parsed <= 6 ? parsed : 6;
+  action.useKey = item.name || action.name;
 }
 
 /**
@@ -2027,6 +2054,18 @@ const redDragon = monsters.find(monster => monster.id === "mmAdultRedDragon");
 const redBreath = redDragon?.actions.find(action => action.name === "Fire Breath");
 if (!redBreath?.area || redBreath.area.type !== "cone" || redBreath.area.size !== 60 || redBreath.area.origin !== "self") {
   failures.push(`Adult Red Fire Breath is ${JSON.stringify(redBreath && redBreath.area)}`);
+}
+if (redBreath?.uses !== 1 || redBreath?.recharge !== 5 || redBreath?.useKey !== "Fire Breath") {
+  failures.push(`Adult Red Fire Breath recharge is ${JSON.stringify(redBreath && { uses: redBreath.uses, recharge: redBreath.recharge, useKey: redBreath.useKey })}`);
+}
+const redRend = redDragon?.actions.find(action => action.name === "Rend");
+if (redRend?.uses != null || redRend?.recharge != null) {
+  failures.push(`Adult Red Rend picked up a recharge: ${JSON.stringify(redRend && { uses: redRend.uses, recharge: redRend.recharge })}`);
+}
+const youngRed = monsters.find(monster => monster.id === "mmYoungRedDragon");
+const youngBreath = youngRed?.actions.find(action => action.name === "Fire Breath");
+if (youngBreath?.uses !== 1 || youngBreath?.recharge !== 6 || youngBreath?.useKey !== "Fire Breath") {
+  failures.push(`Young Red Fire Breath recharge is ${JSON.stringify(youngBreath && { uses: youngBreath.uses, recharge: youngBreath.recharge, useKey: youngBreath.useKey })}`);
 }
 const goldDragon = monsters.find(monster => monster.id === "mmAdultGoldDrago");
 const banish = goldDragon?.actions.find(action => action.name === "Banish");

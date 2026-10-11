@@ -3,7 +3,8 @@
 // real exported data. Run: node combat/initiative-test.js
 const assert = require('assert');
 const init = require('./initiative.js');
-const { nextMonsterStep, runMonsterTurn } = require('./monsterTurn.js');
+const { nextMonsterStep, runMonsterTurn, legalOptions } = require('./monsterTurn.js');
+const { acceptProposal } = require('./advisor.js');
 const { resolveAttack } = require('./attack.js');
 
 const abilities = (dex) => ({ str: 10, dex, con: 10, int: 10, wis: 10, cha: 10 });
@@ -33,6 +34,32 @@ const catalog = {
     abilities: abilities(10), actions: [
       { name: 'Blade', kind: 'attack', toHit: 4, reach: 5, damage: [{ dice: '1d6', type: 'slashing' }] },
     ],
+  },
+  drake: {
+    id: 'drake', name: 'Drake', team: 'monster', ac: 14, hp: 40, speed: 30, proficiency: 2,
+    abilities: abilities(12), actions: [
+      { name: 'Bite', kind: 'attack', toHit: 4, reach: 5, damage: [{ dice: '1d4', type: 'piercing' }] },
+      {
+        name: 'Breath', kind: 'attack', saveAbility: 'dex', saveDc: 15, onSave: 'half', activation: 'action',
+        damage: [{ dice: '8d6', type: 'fire' }],
+        area: { type: 'cone', size: 30, origin: 'self' },
+      },
+    ],
+  },
+  liner: {
+    id: 'liner', name: 'Liner', team: 'monster', ac: 14, hp: 40, speed: 30, proficiency: 2,
+    abilities: abilities(12), actions: [
+      { name: 'Bite', kind: 'attack', toHit: 5, reach: 5, damage: [{ dice: '2d6+4', type: 'piercing' }] },
+      {
+        name: 'Breath', kind: 'attack', saveAbility: 'dex', saveDc: 13, onSave: 'half', activation: 'action',
+        damage: [{ dice: '2d6', type: 'fire' }],
+        area: { type: 'line', size: 30, origin: 'self', width: 5 },
+      },
+    ],
+  },
+  ally: {
+    id: 'ally', name: 'Ally', team: 'monster', ac: 12, hp: 10, speed: 30, proficiency: 2,
+    abilities: abilities(10), actions: [],
   },
 };
 
@@ -164,18 +191,29 @@ check('victory is detected', () => {
 
 // A tiny stand-in for the server: same rules calls, no sockets.
 function makeWorld(tokens) {
-  const world = { tokens, tracker: init.createTracker(), attacks: [], moves: [] };
+  const world = { tokens, tracker: init.createTracker(), attacks: [], moves: [], aims: [] };
 
   world.performAttack = (attacker, step) => {
-    const target = world.tokens.find((t) => t.id === step.targetId);
-    const check = init.checkAttack(world.tracker, attacker.id);
+    const target = step.targetId == null ? null : world.tokens.find((t) => t.id === step.targetId);
+    const action = (catalog[attacker.creatureId].actions || []).find((entry) => entry.name === step.actionName);
+    const check = init.checkAttack(world.tracker, attacker.id, action, attacker);
     if (!check.ok) return check;
-    const result = resolveAttack({ attacker, target, actionName: step.actionName, tokens: world.tokens, catalog });
+    const result = resolveAttack({
+      attacker,
+      target,
+      actionName: step.actionName,
+      tokens: world.tokens,
+      catalog,
+      square: step.square || null,
+    });
     if (!result.ok) return result;
-    init.spendAttack(world.tracker, attacker.id, catalog[attacker.creatureId]);
-    target.hp = result.hpAfter;
-    target.defeated = result.defeated;
+    init.spendAttack(world.tracker, attacker.id, catalog[attacker.creatureId], action, attacker);
+    if (target && result.hpAfter != null) {
+      target.hp = result.hpAfter;
+      target.defeated = result.defeated;
+    }
     world.attacks.push(step.actionName);
+    if (step.square) world.aims.push(step.square);
     return { ok: true };
   };
 
@@ -276,6 +314,64 @@ async function monsterTests() {
   });
   assert.strictEqual(none.type, 'end');
   passed++; console.log('ok  ends turn when there are no targets');
+
+  const { areaSquares, tokenCaught } = require('../public/rules.js');
+  const breath = catalog.drake.actions.find((action) => action.name === 'Breath');
+  const turn = { actionUsed: false, attacksLeft: 0, movementLeft: 30 };
+
+  // The cone already covers both heroes, so the breath is the action.
+  const frontA = token('hero', 'Front A', 8, 5);
+  const frontB = token('hero', 'Front B', 8, 7);
+  let drake = token('drake', 'Drake', 5, 5);
+  let aimed = nextMonsterStep({ token: drake, tokens: [frontA, frontB, drake], catalog, turn });
+  assert.strictEqual(aimed.type, 'attack');
+  assert.strictEqual(aimed.actionName, 'Breath');
+  let covered = areaSquares(drake, aimed.square, breath.area);
+  assert.ok(tokenCaught(frontA, covered) && tokenCaught(frontB, covered));
+  passed++; console.log('ok  cone already covering two heroes is chosen over the bite');
+
+  // One step lines both heroes up. Charging the nearer one would only bite.
+  const nearHero = token('hero', 'Near', 6, 5);
+  const farHero = token('hero', 'Far', 6, 8);
+  drake = token('drake', 'Drake', 5, 5);
+  world = makeWorld([nearHero, farHero, drake]);
+  await world.run(drake);
+  assert.strictEqual(world.attacks[0], 'Breath');
+  assert.strictEqual(world.moves.length, 1);
+  covered = areaSquares(drake, world.aims[0], breath.area);
+  assert.ok(tokenCaught(nearHero, covered) && tokenCaught(farHero, covered), 'breath missed one hero');
+  passed++; console.log('ok  monster steps sideways so the cone catches both heroes');
+
+  // Every line that hits the hero also hits the ally, so the bite is cleaner.
+  const lined = token('hero', 'Hero', 7, 5);
+  const friend = token('ally', 'Ally', 8, 5);
+  const liner = token('liner', 'Liner', 6, 5);
+  const safe = nextMonsterStep({ token: liner, tokens: [lined, friend, liner], catalog, turn });
+  assert.strictEqual(safe.type, 'attack');
+  assert.strictEqual(safe.actionName, 'Bite');
+  assert.strictEqual(safe.targetId, lined.id);
+  passed++; console.log('ok  an area that catches an ally loses to a clean bite');
+
+  goblin = token('goblin', 'Goblin 1', 5, 5);
+  hero = token('hero', 'Hero', 10, 5);
+  const legal = legalOptions({
+    token: goblin, tokens: [goblin, hero], catalog, turn,
+  });
+  const unknown = acceptProposal(
+    { name: 'attack', actionName: 'Nope', targetId: hero.id },
+    legal,
+    legal.step
+  );
+  assert.strictEqual(unknown.actionName, 'Shortbow');
+  const drakeLegal = legalOptions({ token: drake, tokens: [frontA, frontB, drake], catalog, turn });
+  const missed = acceptProposal(
+    { name: 'attack', actionName: 'Breath', x: 0, y: 0 },
+    drakeLegal,
+    drakeLegal.step
+  );
+  assert.strictEqual(missed.actionName, 'Breath');
+  assert.ok(missed.square && missed.square.x !== 0);
+  passed++; console.log('ok  an illegal tool call falls back to the tactician');
 }
 
 // ---------- Real exported data ----------
