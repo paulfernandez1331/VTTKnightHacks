@@ -3,6 +3,7 @@ const assert = require('assert');
 const { resolveAttack, applyIncoming } = require('./attack.js');
 const init = require('./initiative.js');
 const table = require('./table.js');
+const { nextMonsterStep } = require('./monsterTurn.js');
 
 let passed = 0;
 
@@ -606,6 +607,58 @@ check('an enemy pays 10 feet to step into spirit guardians', () => {
   assert.strictEqual(table.movementCost(caster, 3, 2, [zone], tokens), 5);
   assert.strictEqual(table.movementCost(enemy, 7, 2, [zone], tokens), 5);
   assert.strictEqual(table.movementCost(enemy, 5, 2, [zone, web], tokens), 10);
+});
+
+check('a breath spends its use, stays spent on a low d6, and returns on a high one', () => {
+  const breath = {
+    name: 'Fire Breath', kind: 'attack', uses: 1, recharge: 5, useKey: 'Fire Breath',
+    activation: 'action', saveAbility: 'dex', saveDc: 15, onSave: 'half',
+    damage: [{ dice: '8d6', type: 'fire' }],
+    area: { type: 'cone', size: 30, origin: 'self' },
+  };
+  const bite = {
+    name: 'Bite', kind: 'attack', activation: 'action', toHit: 5, reach: 5,
+    damage: [{ dice: '1d4', type: 'piercing' }],
+  };
+  const dragon = creature('drake', {
+    actions: [breath, bite],
+    proficiency: 3,
+    abilities: { str: 18, dex: 10, con: 16, int: 10, wis: 10, cha: 10 },
+  });
+  const heroCreature = creature('hero', { team: 'player' });
+  const drake = token(1, 'drake', 'Drake', 5, 5, 'monster');
+  const hero = token(2, 'hero', 'Hero', 8, 5, 'player');
+  const catalog = { drake: dragon, hero: heroCreature };
+  table.initUses(drake, dragon);
+  assert.strictEqual(drake.uses['Fire Breath'].left, 1);
+  assert.strictEqual(drake.uses['Fire Breath'].recharge, 5);
+
+  const turn = {
+    actionUsed: false, attacksLeft: 0, bonusUsed: false, extraAction: false,
+    dashed: false, moved: false, movementLeft: 30,
+  };
+  const ctx = { token: drake, tokens: [drake, hero], catalog, turn, costOf: () => 5 };
+  assert.strictEqual(nextMonsterStep(ctx).actionName, 'Fire Breath');
+  assert.strictEqual(table.hasUse(drake, breath).ok, true);
+  assert.strictEqual(table.takeUse(drake, breath).ok, true);
+  assert.strictEqual(drake.uses['Fire Breath'].left, 0);
+  assert.strictEqual(table.hasUse(drake, breath).ok, false);
+  assert.notStrictEqual(nextMonsterStep(ctx).actionName, 'Fire Breath');
+
+  const board = boardOf([drake, hero], catalog);
+  const failed = withRolls([0.5], () => table.onTurnStart(board, catalog, drake));
+  assert.strictEqual(drake.uses['Fire Breath'].left, 0);
+  assert.ok(failed.lines.some((line) => line === 'Drake does not recharge Fire Breath (4 on the d6).'));
+  assert.notStrictEqual(nextMonsterStep(ctx).actionName, 'Fire Breath');
+
+  const restored = withRolls([0.7], () => table.onTurnStart(board, catalog, drake));
+  assert.strictEqual(drake.uses['Fire Breath'].left, 1);
+  assert.ok(restored.lines.some((line) => line === 'Drake recharges Fire Breath (5 on the d6).'));
+  assert.strictEqual(nextMonsterStep(ctx).actionName, 'Fire Breath');
+
+  const quiet = withRolls([0], () => table.onTurnStart(board, catalog, drake));
+  assert.strictEqual(drake.uses['Fire Breath'].left, 1);
+  assert.ok(!quiet.lines.some((line) => line.includes('recharge')));
 });
 
 console.log(`\nAll ${passed} checks passed.`);

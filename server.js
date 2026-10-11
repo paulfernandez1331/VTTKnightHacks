@@ -9,6 +9,7 @@ const { GRID, insideRoom } = require('./public/rules.js');
 const { resolveAttack } = require('./combat/attack.js');
 const init = require('./combat/initiative.js');
 const { runMonsterTurn } = require('./combat/monsterTurn.js');
+const { advise } = require('./combat/advisor.js');
 const table = require('./combat/table.js');
 
 const PORT = process.env.PORT || 3000;
@@ -310,6 +311,8 @@ function performAttack(attacker, target, actionName, square, options) {
   // Is it this token's turn, and does it still have an action or attack left?
   const turnCheck = init.checkAttack(board.tracker, attacker.id, action, attacker);
   if (!turnCheck.ok) return turnCheck;
+  const ready = table.hasUse(attacker, action);
+  if (!ready.ok) return ready;
 
   const result = resolveAttack({
     attacker,
@@ -327,11 +330,27 @@ function performAttack(attacker, target, actionName, square, options) {
   // like "out of range" never costs anyone their turn.
   table.snapshot(board);
   init.spendAttack(board.tracker, attacker.id, creature, action, attacker);
+  const spent = table.takeUse(attacker, action);
+  if (!spent.ok) {
+    table.undo(board);
+    return spent;
+  }
   const applied = table.applyAttack(board, catalog, attacker, action || { name: actionName }, result);
   addLog(result.outcome, applied.lines, applied.pub);
   broadcast();
   checkForVictory();
+  flashArea(result);
   return { ok: true };
+}
+
+// Paint the squares an area just covered. The color follows the damage type.
+function flashArea(result) {
+  const squares = result && result.squares;
+  if (!squares || !squares.length) return;
+  io.emit('area:flash', {
+    squares: squares.map((square) => ({ x: square.x, y: square.y })),
+    damageType: result.damageType || null,
+  });
 }
 
 function performDash(token) {
@@ -386,9 +405,13 @@ async function maybeRunMonsterTurn() {
       costOf: (t, x, y) => table.movementCost(t, x, y, board.zones, board.tokens),
       performAttack: (t, step) => {
         const target = board.tokens.find((x) => x.id === step.targetId);
-        return performAttack(t, target, step.actionName);
+        return performAttack(t, target, step.actionName, step.square);
       },
-      pause: () => new Promise((resolve) => setTimeout(resolve, 800)),
+      advise,
+      pause: (step) => new Promise((resolve) => {
+        const area = step && step.type === 'attack' && step.square;
+        setTimeout(resolve, area ? 1600 : 800);
+      }),
     });
   } catch (err) {
     // A bug in one monster's turn should skip that turn, not crash the table.

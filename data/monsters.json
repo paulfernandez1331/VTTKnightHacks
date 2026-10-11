@@ -246,7 +246,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Cloud of Insects",
@@ -499,7 +502,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Secondhand and Picture",
@@ -775,7 +781,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Sleep Breath (1st Save)",
@@ -964,7 +973,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Repulsion Breath",
@@ -1204,7 +1216,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Slowing Breath",
@@ -1374,7 +1389,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Weakening Breath",
@@ -1615,7 +1633,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Poison Breath"
       },
       {
         "name": "Noxious Miasma",
@@ -1815,7 +1836,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Scorching Ray",
@@ -2015,7 +2039,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Paralyzing Breath",
@@ -2296,7 +2323,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Freezing Burst",
@@ -2460,7 +2490,10 @@
         "conditions": [
           "prone"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 4,
+        "useKey": "Whirlwind"
       }
     ],
     "traits": [
@@ -2624,7 +2657,10 @@
           "origin": "self",
           "width": 10
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Cloud of Insects",
@@ -2877,7 +2913,10 @@
           "origin": "self",
           "width": 10
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Secondhand and Picture",
@@ -3153,7 +3192,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Sleep Breath (1st Save)",
@@ -3396,7 +3438,10 @@
           "origin": "self",
           "width": 10
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Thunderclap",
@@ -3761,7 +3806,10 @@
           "origin": "self",
           "width": 10
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Slowing Breath",
@@ -3931,7 +3979,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Weakening Breath",
@@ -4172,7 +4223,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Poison Breath"
       },
       {
         "name": "Noxious Miasma",
@@ -4392,7 +4446,10 @@
           "size": 90,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Secondhand and Picture",
@@ -4709,7 +4766,10 @@
           "size": 90,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Paralyzing Breath",
@@ -4990,7 +5050,10 @@
           "size": 90,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Freezing Burst",
@@ -5361,7 +5424,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Acid Spray"
       }
     ],
     "traits": [
@@ -7124,7 +7190,10 @@
           "restrained",
           "petrified"
         ],
-        "activation": "bonus"
+        "activation": "bonus",
+        "uses": 1,
+        "recharge": 4,
+        "useKey": "Petrifying Gaze"
       },
       {
         "name": "Second Save",
@@ -7460,7 +7529,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       }
     ],
     "traits": [
@@ -7679,7 +7751,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       }
     ],
     "traits": [
@@ -8008,7 +8083,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       }
     ],
     "traits": [
@@ -8266,7 +8344,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Sleep Breath (1st Save)",
@@ -8387,7 +8468,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Repulsion Breath",
@@ -9170,7 +9254,10 @@
         "conditions": [
           "prone"
         ],
-        "activation": "bonus"
+        "activation": "bonus",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Trampling Charge"
       },
       {
         "name": "Pike",
@@ -9451,7 +9538,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       }
     ],
     "traits": [
@@ -10643,7 +10733,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Slowing Breath",
@@ -11965,7 +12058,10 @@
         "conditions": [
           "frightened"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Unsettling Visage"
       },
       {
         "name": "Probe Deeper",
@@ -12258,7 +12354,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Steam Breath"
       }
     ],
     "traits": [
@@ -12962,7 +13061,10 @@
         "conditions": [
           "blinded"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Blinding Breath"
       },
       {
         "name": "Sleep",
@@ -13677,7 +13779,10 @@
         "conditions": [
           "restrained"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Web Strand"
       }
     ],
     "traits": [
@@ -15319,7 +15424,10 @@
           "size": 5,
           "origin": "point"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Boulder Toss"
       }
     ],
     "traits": [
@@ -17012,7 +17120,10 @@
         "conditions": [
           "restrained"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Web"
       }
     ],
     "traits": [
@@ -17682,7 +17793,10 @@
         "conditions": [
           "blinded"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Blinding Spittle"
       }
     ],
     "traits": [
@@ -18413,7 +18527,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Weakening Breath",
@@ -18519,7 +18636,10 @@
           "petrified",
           "restrained"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Petrifying Breath"
       },
       {
         "name": "Trample",
@@ -18695,7 +18815,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Poison Breath"
       }
     ],
     "traits": [
@@ -19546,7 +19669,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Dragon's Breath"
       }
     ],
     "traits": [
@@ -19777,7 +19903,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       }
     ],
     "traits": [
@@ -21006,7 +21135,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Frost Breath"
       },
       {
         "name": "Claw",
@@ -21358,7 +21490,10 @@
         "conditions": [
           "unconscious"
         ],
-        "activation": "bonus"
+        "activation": "bonus",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Nightmare"
       },
       {
         "name": "Hypnotic Pattern",
@@ -21686,7 +21821,10 @@
           "size": 60,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Poison Breath"
       }
     ],
     "traits": [
@@ -23481,7 +23619,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Fire Breath"
       }
     ],
     "traits": [
@@ -24028,7 +24169,10 @@
           "restrained",
           "petrified"
         ],
-        "activation": "bonus"
+        "activation": "bonus",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Petrifying Gaze"
       },
       {
         "name": "Second Save",
@@ -24441,7 +24585,10 @@
         ],
         "kind": "attack",
         "toHit": 6,
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Gore"
       },
       {
         "name": "Moving Attack",
@@ -24459,7 +24606,10 @@
         ],
         "kind": "attack",
         "toHit": 6,
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Gore"
       }
     ],
     "traits": []
@@ -24992,7 +25142,10 @@
         "conditions": [
           "frightened"
         ],
-        "activation": "bonus"
+        "activation": "bonus",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Horror Nimbus"
       },
       {
         "name": "Rend",
@@ -27913,7 +28066,10 @@
           "frightened",
           "incapacitated"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Baleful Command"
       },
       {
         "name": "Probe Deeper",
@@ -28146,7 +28302,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       }
     ],
     "traits": [
@@ -29315,7 +29474,10 @@
             "type": "psychic"
           }
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Death Glare"
       },
       {
         "name": "Secondhand and Picture",
@@ -29953,7 +30115,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Paralyzing Breath",
@@ -30499,7 +30664,10 @@
         "conditions": [
           "incapacitated"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Mind-Rending Roar"
       },
       {
         "name": "Weight of Years",
@@ -31383,7 +31551,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Steam Breath"
       }
     ],
     "traits": [
@@ -31800,7 +31971,10 @@
           "size": 10,
           "origin": "point"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Storm"
       }
     ],
     "traits": [
@@ -32481,7 +32655,10 @@
         "conditions": [
           "deafened"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Cacophony"
       }
     ],
     "traits": [
@@ -32684,7 +32861,10 @@
           "deafened",
           "frightened"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Thunderous Bellow"
       },
       {
         "name": "Swallow",
@@ -34209,7 +34389,10 @@
         "conditions": [
           "poisoned"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Spores"
       },
       {
         "name": "Damage While Poisoned",
@@ -34715,7 +34898,10 @@
           "grappled",
           "restrained"
         ],
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 4,
+        "useKey": "Whelm"
       },
       {
         "name": "Damage: Start of Turn",
@@ -35451,7 +35637,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       }
     ],
     "traits": [
@@ -35767,7 +35956,10 @@
           "size": 15,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       }
     ],
     "traits": [
@@ -36235,7 +36427,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       }
     ],
     "traits": [
@@ -36330,7 +36525,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       }
     ],
     "traits": [
@@ -36417,7 +36615,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Sleep Breath (1st Save)",
@@ -36542,7 +36743,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Lightning Breath"
       },
       {
         "name": "Repulsion Breath",
@@ -36655,7 +36859,10 @@
           "origin": "self",
           "width": 5
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Acid Breath"
       },
       {
         "name": "Slowing Breath",
@@ -36760,7 +36967,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Fire Breath"
       },
       {
         "name": "Weakening Breath",
@@ -36875,7 +37085,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Poison Breath"
       }
     ],
     "traits": [
@@ -36969,7 +37182,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 6,
+        "useKey": "Fire Breath"
       }
     ],
     "traits": [
@@ -37055,7 +37271,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       },
       {
         "name": "Paralyzing Breath",
@@ -37168,7 +37387,10 @@
           "size": 30,
           "origin": "self"
         },
-        "activation": "action"
+        "activation": "action",
+        "uses": 1,
+        "recharge": 5,
+        "useKey": "Cold Breath"
       }
     ],
     "traits": [

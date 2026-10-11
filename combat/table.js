@@ -2,7 +2,7 @@
 // The server owns the board. This file only mutates the objects it is given.
 
 const { GRID, feetBetween, insideRoom, areaSquares } = require('../public/rules.js');
-const { rollD20, rollDice } = require('./dice.js');
+const { rollD20, rollDice, rollDie } = require('./dice.js');
 const { resolveAttack, resolveStrike, resolveSaveTarget, applyIncoming } = require('./attack.js');
 const init = require('./initiative.js');
 
@@ -19,9 +19,33 @@ function initUses(token, creature) {
   ensureToken(token);
   (creature.actions || []).forEach((action) => {
     const key = action.useKey || action.name;
-    if (action.pool != null) token.uses[key] = { left: action.pool, max: action.pool };
-    else if (action.uses != null) token.uses[key] = { left: action.uses, max: action.uses };
+    const max = action.pool != null ? action.pool : action.uses;
+    if (max == null) return;
+    const prior = token.uses[key];
+    const bag = { left: max, max };
+    const recharge = action.recharge != null ? action.recharge : prior && prior.recharge;
+    if (recharge != null) bag.recharge = recharge;
+    token.uses[key] = bag;
   });
+}
+
+function limitedUse(action) {
+  return !!(action && (action.uses != null || action.pool != null || action.recharge != null));
+}
+
+// Reject a breath that is still spent. Features spend themselves in useFeature.
+function hasUse(token, action) {
+  if (!limitedUse(action)) return { ok: true };
+  ensureToken(token);
+  const key = action.useKey || action.name;
+  const bag = token.uses[key];
+  if (!bag || bag.left < 1) return { ok: false, error: `No uses of ${key} left.` };
+  return { ok: true };
+}
+
+function takeUse(token, action) {
+  if (!limitedUse(action)) return { ok: true };
+  return spendUse(token, action.useKey || action.name, 1);
 }
 
 function snapshot(board) {
@@ -614,6 +638,7 @@ function onTurnStart(board, catalog, token) {
   if (board.tracker.turn && board.tracker.turn.tokenId === token.id) {
     board.tracker.turn.movementLeft = init.speedNow(creature, token);
   }
+  rechargeUses(token, lines);
   const commanded = commandTurn(board, catalog, token);
   if (commanded) {
     lines.push.apply(lines, commanded.lines);
@@ -657,6 +682,22 @@ function enterZones(board, catalog, token, from) {
   });
   spiritFollow(board, catalog, token, from, lines);
   return lines;
+}
+
+// A spent recharge comes back on a d6. A full pool does not roll.
+function rechargeUses(token, lines) {
+  ensureToken(token);
+  Object.keys(token.uses).forEach((key) => {
+    const bag = token.uses[key];
+    if (!bag || bag.recharge == null || bag.left >= bag.max) return;
+    const die = rollDie(6);
+    if (die >= bag.recharge) {
+      bag.left = bag.max;
+      lines.push(`${token.name} recharges ${key} (${die} on the d6).`);
+    } else {
+      lines.push(`${token.name} does not recharge ${key} (${die} on the d6).`);
+    }
+  });
 }
 
 function spendUse(token, key, amount) {
@@ -915,6 +956,8 @@ function removeZone(board, zoneId, lines) {
 
 module.exports = {
   initUses,
+  hasUse,
+  takeUse,
   snapshot,
   undo,
   movementCost,

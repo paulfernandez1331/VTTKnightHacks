@@ -11,6 +11,19 @@ const COLORS = {
   measure: '#c79a3b',
 };
 
+// Brief overlay after an area resolves. Gold is the aim-mask color, used when the type is missing.
+const FLASH_COLOR = {
+  fire: 'rgba(226, 112, 42, 0.55)',
+  cold: 'rgba(72, 156, 214, 0.55)',
+  lightning: 'rgba(236, 214, 64, 0.55)',
+  thunder: 'rgba(148, 92, 196, 0.55)',
+  acid: 'rgba(176, 196, 62, 0.55)',
+  poison: 'rgba(72, 168, 78, 0.55)',
+  radiant: 'rgba(228, 192, 84, 0.55)',
+  necrotic: 'rgba(108, 86, 132, 0.55)',
+};
+const FLASH_MS = 1200;
+
 // Pass ?dm=CODE in the URL to join as the DM.
 const params = new URLSearchParams(window.location.search);
 const socket = io({ auth: { dmCode: params.get('dm') || '' } });
@@ -26,6 +39,7 @@ let commandWord = 'Halt';
 let spiritType = 'Radiant';
 let layAmount = 1;
 let tokenNodes = {}; // token id -> Konva group
+let flashTimer = null;
 
 // ---------- Stage and layers ----------
 
@@ -1007,6 +1021,37 @@ socket.on('state', (newState) => {
 // Rule errors such as "out of range" come back only to the player who asked.
 socket.on('attack:error', ({ message }) => {
   document.getElementById('attack-msg').textContent = message;
+});
+
+// The overlay sits on the area layer until the timer, or until a new aim mask replaces it.
+function showAreaFlash(squares, damageType) {
+  if (!squares || !squares.length || armed) return;
+  if (flashTimer) clearTimeout(flashTimer);
+  areaLayer.destroyChildren();
+  const key = String(damageType || '').toLowerCase();
+  const fill = FLASH_COLOR[key] || 'rgba(199, 154, 59, 0.45)';
+  squares.forEach((cell) => {
+    areaLayer.add(new Konva.Rect({
+      name: 'area-flash',
+      x: cell.x * GRID.size,
+      y: cell.y * GRID.size,
+      width: GRID.size,
+      height: GRID.size,
+      fill,
+      listening: false,
+    }));
+  });
+  areaLayer.batchDraw();
+  flashTimer = setTimeout(() => {
+    flashTimer = null;
+    if (armed) return;
+    areaLayer.find('.area-flash').forEach((node) => node.destroy());
+    areaLayer.batchDraw();
+  }, FLASH_MS);
+}
+
+socket.on('area:flash', ({ squares, damageType }) => {
+  showAreaFlash(squares, damageType);
 });
 
 const importForm = document.getElementById('import-form');

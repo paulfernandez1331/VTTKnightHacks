@@ -153,7 +153,8 @@ function attackStats(creature, action) {
   // Spell attacks use the spellcasting ability and add no damage modifier.
   if (action.attackAbility) {
     const mod = abilityMod(creature, action.attackAbility);
-    return { toHit: mod + creature.proficiency, damageMod: 0 };
+    const extra = Number(action.attackBonus) || 0;
+    return { toHit: mod + creature.proficiency + extra, damageMod: 0 };
   }
 
   // Weapons: assumes the character is proficient with everything they carry.
@@ -270,6 +271,10 @@ function finishResult(result, action, squares) {
   if (squares) result.squares = squares;
   if (action.zone) result.zone = action.zone;
   if (action.damageType) result.damageType = action.damageType;
+  else if (!result.damageType) {
+    const part = (action.damage || []).find((entry) => entry && entry.type);
+    if (part) result.damageType = part.type;
+  }
   if (action.concentration) result.concentration = true;
   if (action.repeatSave) result.repeatSave = true;
   if (action.burn) result.burn = action.burn;
