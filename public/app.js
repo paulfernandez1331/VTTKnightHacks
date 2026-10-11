@@ -1066,20 +1066,43 @@ function renderInitiative() {
     box.appendChild(el('p', status, 'detail-sub'));
   }
 
-  // The DM can end any turn. Players can end a player's turn.
-  const acting = tokenById(tracker.currentTokenId);
-  if (acting && (state.isDM || acting.team === 'player')) {
-    const next = el('button', 'End turn');
-    next.addEventListener('click', () => socket.emit('combat:next'));
-    box.appendChild(next);
-  }
-
   if (state.isDM) {
     appendDmFixes(box);
     const end = el('button', 'End combat', 'danger');
     end.addEventListener('click', () => socket.emit('combat:end'));
     box.appendChild(end);
   }
+}
+
+function renderTurnOrder() {
+  const tracker = state.tracker;
+  const currentTurnName = document.getElementById('current-turn-name');
+  const currentRound = document.getElementById('current-round');
+  const orderList = document.getElementById('turn-order-list');
+  orderList.replaceChildren();
+
+  if (!tracker.active) {
+    currentTurnName.textContent = 'Combat not started';
+    currentRound.textContent = 'Waiting';
+    orderList.appendChild(el('li', 'Start combat to roll initiative.', 'turn-order-empty'));
+    return;
+  }
+
+  const acting = tracker.order.find((entry) => entry.tokenId === tracker.currentTokenId);
+  currentTurnName.textContent = acting ? acting.name : 'No active turn';
+  currentRound.textContent = `Round ${tracker.round}`;
+
+  tracker.order.forEach((entry, index) => {
+    const token = tokenById(entry.tokenId);
+    const item = el('li', undefined, 'turn-order-entry');
+    if (entry.tokenId === tracker.currentTokenId) item.classList.add('active');
+    if (token && token.defeated) item.classList.add('defeated');
+    item.setAttribute('aria-current', entry.tokenId === tracker.currentTokenId ? 'step' : 'false');
+    item.appendChild(el('span', String(index + 1), 'turn-order-rank'));
+    item.appendChild(el('span', entry.name, 'turn-order-creature'));
+    item.appendChild(el('span', String(entry.total), 'turn-order-initiative'));
+    orderList.appendChild(item);
+  });
 }
 
 function appendDmFixes(box) {
@@ -1225,6 +1248,20 @@ function renderPlayerProfile() {
 
 function renderPanel() {
   document.getElementById('role').textContent = state.isDM ? 'Dungeon Master view' : 'Player view';
+  const endTurn = document.getElementById('end-turn');
+  const tracker = state.tracker;
+  const acting = tokenById(tracker.currentTokenId);
+  const canEndTurn = tracker.active && acting && (state.isDM || acting.team === 'player') && !state.monsterBusy;
+  endTurn.disabled = !canEndTurn;
+  endTurn.title = !tracker.active
+    ? 'Start combat to enable turn controls'
+    : state.monsterBusy
+      ? 'Wait for the monster turn to finish'
+      : !acting
+        ? 'No active turn'
+        : !state.isDM && acting.team !== 'player'
+          ? 'Waiting for the monster turn'
+          : `End ${acting.name}'s turn`;
   const attacker = tokenById(selected[0]);
   const target = tokenById(selected[1]);
   document.getElementById('selected-title').textContent = attacker ? attacker.name : 'Select a token';
@@ -1241,18 +1278,26 @@ function renderPanel() {
   renderDetail();
   renderPlayerProfile();
   renderInitiative();
+  renderTurnOrder();
   drawZones();
 }
 
 // ---------- Wiring ----------
 
 socket.on('state', (newState) => {
+  const previousTurnTokenId = state.tracker.currentTokenId;
   state = newState;
+  const currentTurnTokenId = state.tracker.active ? state.tracker.currentTokenId : null;
+  const turnChanged = currentTurnTokenId && currentTurnTokenId !== previousTurnTokenId;
+  if (turnChanged && state.tokens.some((token) => token.id === currentTurnTokenId)) {
+    selected = [currentTurnTokenId];
+  }
   // Drop any selected tokens that no longer exist.
   selected = selected.filter((id) => state.tokens.some((t) => t.id === id));
   if (armed && !armedAction()) armed = null;
   renderTokens();
   renderPanel();
+  if (turnChanged) revealSelectionPanel();
 });
 
 // Rule errors such as "out of range" come back only to the player who asked.
@@ -1264,6 +1309,10 @@ const importForm = document.getElementById('import-form');
 const importUrl = document.getElementById('import-url');
 const importMsg = document.getElementById('import-msg');
 const importButton = importForm.querySelector('button');
+
+document.getElementById('end-turn').addEventListener('click', () => {
+  socket.emit('combat:next');
+});
 
 importForm.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -1391,13 +1440,6 @@ document.getElementById('clear-search').addEventListener('click', () => {
   rosterSearch.value = '';
   rosterSearch.focus();
   renderRoster();
-});
-
-document.getElementById('collapse-roster').addEventListener('click', (event) => {
-  const card = event.currentTarget.closest('.add-map-card');
-  const collapsed = card.classList.toggle('collapsed');
-  event.currentTarget.textContent = collapsed ? '+' : '−';
-  event.currentTarget.setAttribute('aria-label', collapsed ? 'Expand add to map' : 'Collapse add to map');
 });
 
 document.getElementById('token-menu').addEventListener('click', () => {

@@ -22,6 +22,24 @@
     </div>
     <div class="workspace-actions">
       <span class="preview-label">Battle interface preview</span>
+      <button id="end-turn" class="end-turn-button" type="button" disabled title="Start combat to enable turn controls">End turn</button>
+      <details class="add-map-menu">
+        <summary>Add to Map</summary>
+        <section class="add-map-popover" aria-label="Add creatures to map">
+          <form id="import-form" class="import-form">
+            <input id="import-url" class="roster-search import-input" type="text" placeholder="D&amp;D Beyond link or character" autocomplete="off" aria-label="D&D Beyond link or character ID">
+            <button class="import-submit" type="submit" aria-label="Import character">→</button>
+          </form>
+          <p id="import-msg" class="import-msg" role="alert"></p>
+          <p id="roster-msg" class="roster-msg" role="status" aria-live="polite"></p>
+          <label class="search-field">
+            <span aria-hidden="true">⌕</span>
+            <input id="roster-search" class="roster-search" type="search" placeholder="Search creatures" autocomplete="off" aria-label="Search creatures by name, class, or level">
+            <button id="clear-search" class="clear-search" type="button" aria-label="Clear search">×</button>
+          </label>
+          <div id="roster" class="roster"></div>
+        </section>
+      </details>
       <details class="initiative-menu">
         <summary>Combat settings</summary>
         <div id="initiative"></div>
@@ -29,6 +47,15 @@
       <span class="user-avatar" aria-label="Dungeon Master">DM</span>
     </div>
   </header>
+
+  <section class="turn-order-bar" aria-label="Combat turn order" aria-live="polite">
+    <div class="current-turn-summary">
+      <span class="current-turn-eyebrow">Current turn</span>
+      <strong id="current-turn-name">Combat not started</strong>
+      <span id="current-round" class="current-round">Waiting</span>
+    </div>
+    <ol id="turn-order-list" class="turn-order-list" aria-label="Initiative order"></ol>
+  </section>
 
   <main class="layout" id="battle">
     <section class="board-column" aria-label="Battle map and combat log">
@@ -89,25 +116,6 @@
     </section>
 
     <aside class="panel" aria-label="Battle controls">
-      <section class="panel-card add-map-card">
-        <div class="section-heading">
-          <h2>Add to Map</h2>
-          <button id="collapse-roster" class="icon-button" type="button" aria-label="Collapse add to map">−</button>
-        </div>
-        <form id="import-form" class="import-form">
-          <input id="import-url" class="roster-search import-input" type="text" placeholder="D&amp;D Beyond link or character" autocomplete="off" aria-label="D&D Beyond link or character ID">
-          <button class="import-submit" type="submit" aria-label="Import character">→</button>
-        </form>
-        <p id="import-msg" class="import-msg" role="alert"></p>
-        <p id="roster-msg" class="roster-msg" role="status" aria-live="polite"></p>
-        <label class="search-field">
-          <span aria-hidden="true">⌕</span>
-          <input id="roster-search" class="roster-search" type="search" placeholder="Search creatures" autocomplete="off" aria-label="Search creatures by name, class, or level">
-          <button id="clear-search" class="clear-search" type="button" aria-label="Clear search">×</button>
-        </label>
-        <div id="roster" class="roster"></div>
-      </section>
-
       <section class="panel-card selection-card" aria-labelledby="selected-title">
         <div class="section-heading">
           <div class="selected-heading">
