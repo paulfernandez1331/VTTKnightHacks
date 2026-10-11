@@ -74,14 +74,20 @@ check('rounds increase after everyone has gone, defeated tokens are skipped', ()
   const tokens = [token('hero', 'Hero', 1, 1), token('goblin', 'Goblin 1', 5, 5), token('zombie', 'Zombie 1', 8, 8)];
   const tracker = init.createTracker();
   init.startCombat(tracker, tokens, catalog);
-  tokens[1].defeated = true;
+  const goblin = tokens[1];
+  goblin.defeated = true;
+  // The goblin may already be the current actor. That turn is over, and the
+  // samples below must never land on it no matter who won initiative.
+  if (init.currentTokenId(tracker) === goblin.id) init.endTurn(tracker, tokens, catalog);
   const seen = [];
+  const roundAtStart = tracker.round;
   for (let i = 0; i < 4; i++) {
     seen.push(init.currentTokenId(tracker));
     init.endTurn(tracker, tokens, catalog);
   }
-  assert.ok(!seen.includes(tokens[1].id), 'defeated goblin got a turn');
-  assert.strictEqual(tracker.round, 3);
+  assert.ok(!seen.includes(goblin.id), 'defeated goblin got a turn');
+  // Two creatures are still standing, so four turns is two full rounds.
+  assert.strictEqual(tracker.round, roundAtStart + 2);
 });
 
 check('joining mid-fight keeps the current turn where it was', () => {
@@ -182,6 +188,19 @@ function makeWorld(tokens) {
     return { ok: true };
   };
 
+  world.performDash = (mover) => {
+    const turn = world.tracker.turn;
+    if (!turn || turn.actionUsed) return { ok: false, error: 'No action left.' };
+    turn.actionUsed = true;
+    turn.attacksLeft = 0;
+    turn.dashed = true;
+    const creature = catalog[mover.creatureId];
+    const speed = creature.speed > 0 ? creature.speed : 30;
+    turn.movementLeft += speed;
+    world.dashes = (world.dashes || 0) + 1;
+    return { ok: true };
+  };
+
   world.run = async (mover) => {
     init.startCombat(world.tracker, world.tokens, catalog);
     advanceTo(world.tracker, world.tokens, mover.id);
@@ -192,6 +211,7 @@ function makeWorld(tokens) {
       tracker: world.tracker,
       performMove: world.performMove,
       performAttack: world.performAttack,
+      performDash: world.performDash,
       pause: async () => {},
     });
   };
@@ -199,14 +219,15 @@ function makeWorld(tokens) {
 }
 
 async function monsterTests() {
-  // Far-off zombie can only walk. Speed 20 is 4 squares, so it ends 6 squares away.
+  // Far-off zombie cannot reach, so it dashes (speed 20 twice) and stops 2 squares short.
   let hero = token('hero', 'Hero', 10, 5);
   let zombie = token('zombie', 'Zombie 1', 0, 5);
   let world = makeWorld([hero, zombie]);
   await world.run(zombie);
-  assert.strictEqual(zombie.x, 4);
+  assert.strictEqual(zombie.x, 8);
   assert.strictEqual(world.attacks.length, 0);
-  passed++; console.log('ok  melee monster walks as far as its speed allows');
+  assert.strictEqual(world.dashes, 1);
+  passed++; console.log('ok  melee monster dashes when it cannot reach');
 
   // Zombie 5 squares away: walks 4 to become adjacent, then slams once.
   hero = token('hero', 'Hero', 10, 5);
@@ -214,6 +235,7 @@ async function monsterTests() {
   world = makeWorld([hero, zombie]);
   await world.run(zombie);
   assert.strictEqual(world.attacks.length, 1);
+  assert.strictEqual(world.dashes || 0, 0);
   assert.ok(Math.max(Math.abs(zombie.x - hero.x), Math.abs(zombie.y - hero.y)) === 1);
   passed++; console.log('ok  monster closes in and attacks in the same turn');
 
@@ -296,22 +318,23 @@ async function realDataTests() {
   assert.ok(!overlaps, 'owlbear is standing on the hero');
   const moved = Math.max(Math.abs(owlbear.x - 1), Math.abs(owlbear.y - 1)) * 5;
   assert.ok(moved <= 40, 'owlbear moved farther than its speed');
+  assert.strictEqual(world.dashes || 0, 0);
   passed++; console.log('ok  large monster closes in, respects footprint, and uses Multiattack');
 
   // Smoke test: the script must give a valid answer for all 380 monsters.
   const standIn = token(named(characters, 'Zanna (5)').id, 'Zanna (5)', 15, 8);
-  let counts = { attack: 0, move: 0, end: 0 };
+  let counts = { attack: 0, move: 0, end: 0, dash: 0 };
   monsters.forEach((m) => {
     const t = token(m.id, m.name, 1, 1);
     const step = nextMonsterStep({
       token: t, tokens: [t, standIn], catalog,
       turn: { actionUsed: false, attacksLeft: 0, movementLeft: 30 },
     });
-    assert.ok(['attack', 'move', 'end'].includes(step.type), m.name + ' gave a bad step');
+    assert.ok(['attack', 'move', 'dash', 'end'].includes(step.type), m.name + ' gave a bad step');
     counts[step.type]++;
   });
   passed++; console.log(`ok  all ${monsters.length} monsters produce a valid step ` +
-    `(attack ${counts.attack}, move ${counts.move}, end ${counts.end})`);
+    `(attack ${counts.attack}, move ${counts.move}, dash ${counts.dash}, end ${counts.end})`);
 }
 
 monsterTests().then(realDataTests).then(() => console.log(`\nAll ${passed} checks passed.`)).catch((err) => {

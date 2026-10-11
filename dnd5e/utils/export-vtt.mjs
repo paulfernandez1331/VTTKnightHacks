@@ -42,6 +42,249 @@ const CREATURE_TYPES = [
 ];
 const CREATURE_TYPE_SET = new Set(CREATURE_TYPES);
 const TARGET_FILLER = new Set(["of", "your", "choice", "or", "and", "a", "an", "the", "that", "target", "is"]);
+const SCALES = loadScales();
+
+/**
+ * Class scale tables, keyed as "fighter:second-wind". The title is used when
+ * the advancement left its identifier blank.
+ * @returns {Map<string, { level: number, value: number|null, faces: number|null }[]>}
+ */
+function asList(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value);
+  return [];
+}
+
+function loadScales() {
+  const map = new Map();
+  const root = path.join(ROOT, "packs/_source/classes24");
+  if (!fs.existsSync(root)) return map;
+  for (const className of fs.readdirSync(root)) {
+    const file = path.join(root, className, `${className}.yml`);
+    if (!fs.existsSync(file)) continue;
+    const doc = YAML.load(fs.readFileSync(file, "utf8"));
+    // Some class files store advancement as a list, others as an id-keyed map.
+    for (const adv of asList(doc?.system?.advancement)) {
+      if (adv.type !== "ScaleValue") continue;
+      const rows = Object.entries(adv.configuration?.scale ?? {}).map(([level, entry]) => ({
+        level: Number(level),
+        value: typeof entry?.value === "number" ? entry.value : null,
+        faces: typeof entry?.faces === "number" ? entry.faces : null
+      })).filter(row => Number.isFinite(row.level));
+      rows.sort((a, b) => a.level - b.level);
+      const keys = [adv.configuration?.identifier, slug(adv.title)].filter(Boolean);
+      for (const key of keys) map.set(`${className}:${key}`, rows);
+    }
+  }
+  return map;
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function slug(text) {
+  return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
+ * Highest scale row at or below a level.
+ * @param {string} className
+ * @param {string} key
+ * @param {number} level
+ * @returns {{ value: number|null, faces: number|null }|null}
+ */
+function scaleAt(className, key, level) {
+  const rows = SCALES.get(`${className}:${key}`);
+  if (!rows) return null;
+  let found = null;
+  for (const row of rows) {
+    if (row.level <= level) found = row;
+  }
+  return found;
+}
+
+/**
+ * @param {object} doc
+ * @returns {Record<string, number>}
+ */
+function classLevels(doc) {
+  const levels = {};
+  for (const item of doc.items ?? []) {
+    if (item.type === "class" && item.name) levels[item.name.toLowerCase()] = Number(item.system?.levels) || 0;
+  }
+  return levels;
+}
+
+/**
+ * @param {object} item
+ * @param {object} activity
+ * @returns {"action"|"bonus"|"reaction"|"special"}
+ */
+function activationOf(item, activity) {
+  const raw = activity.activation?.type || item.system?.activation?.type || "";
+  if (raw === "bonus" || raw === "reaction" || raw === "special") return raw;
+  return "action";
+}
+
+/**
+ * @param {string|number|null|undefined} text
+ * @param {{ abilities: Record<string, number>, levels: Record<string, number>, level: number }} ctx
+ * @returns {number|null}
+ */
+function evalUses(text, ctx) {
+  if (text == null || text === "") return null;
+  const raw = String(text).trim();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const scale = /^@scale\.([a-z]+)\.([a-z0-9.-]+)$/.exec(raw);
+  if (scale) {
+    const row = scaleAt(scale[1], scale[2], ctx.level);
+    return row && typeof row.value === "number" ? row.value : null;
+  }
+  if (/^max\(1,\s*@abilities\.cha\.mod\)$/.test(raw)) return Math.max(1, abilityMod(ctx.abilities.cha));
+  if (/^5 \* @classes\.paladin\.levels$/.test(raw)) return 5 * (ctx.levels.paladin || 0);
+  return null;
+}
+
+/**
+ * @param {object} item
+ * @param {object} doc
+ * @param {Record<string, number>} abilities
+ * @param {number} level
+ * @returns {number|null}
+ */
+function itemUses(item, doc, abilities, level) {
+  const ctx = { abilities, levels: classLevels(doc), level };
+  const fromMax = evalUses(item.system?.uses?.max, ctx);
+  if (item.type === "consumable") {
+    const qty = Number(item.system?.quantity) || 1;
+    return (fromMax || 1) * qty;
+  }
+  return fromMax;
+}
+
+/**
+ * @param {object} activity
+ * @param {Record<string, number>} levels
+ * @returns {string|null}
+ */
+function healDice(activity, levels) {
+  const heal = activity.healing;
+  if (!heal) return null;
+  const entry = damageEntry(heal, 0, false);
+  if (!entry) return null;
+  const bonus = String(heal.bonus ?? "");
+  const classBonus = /^@classes\.([a-z]+)\.levels$/.exec(bonus);
+  if (!classBonus) return entry.dice;
+  const extra = levels[classBonus[1]] || 0;
+  if (!extra) return entry.dice;
+  return /[+-]/.test(entry.dice) ? entry.dice : `${entry.dice}+${extra}`;
+}
+
+/**
+ * @param {object} item
+ * @param {object} activity
+ * @returns {string}
+ */
+function profileFor(item, activity) {
+  const itemName = item.name || "";
+  const activityName = activity.name || "";
+  const both = `${itemName} ${activityName}`.toLowerCase();
+  if (activityName === "Dash" || /adrenaline rush: dash/.test(both)) return "dash";
+  if (activityName === "Disengage") return "disengage";
+  if (activityName === "Hide") return "hide";
+  if (/steady aim/.test(both)) return "steady-aim";
+  if (itemName === "Rage" || activityName === "Expend Rage") return "rage";
+  if (/patient defense/.test(both)) return "patient-defense";
+  if (/flurry of blows/.test(both)) return "flurry";
+  if (/step of the wind/.test(both)) return "step";
+  if (itemName === "Bardic Inspiration") return "bardic";
+  if (/remove poison/.test(both)) return "remove-poison";
+  if (itemName === "Lay on Hands") return "lay-on-hands";
+  if (itemName === "Action Surge") return "action-surge";
+  if (itemName === "Second Wind") return "second-wind";
+  return "log";
+}
+
+/**
+ * @param {object} item
+ * @param {object} activity
+ * @param {boolean} monster
+ * @returns {boolean}
+ */
+function exportFeature(item, activity, monster) {
+  if (monster) return false;
+  const kind = activity.type;
+  if (kind !== "heal" && kind !== "utility" && kind !== "check" && kind !== "cast") return false;
+  if (item.type !== "feat" && item.type !== "consumable" && item.type !== "spell") return false;
+  const activityName = activity.name || "";
+  const itemName = item.name || "";
+  if (/tinderbox/i.test(itemName) && /^light$/i.test(activityName || "Light")) return false;
+  if (/wall of (stone|force)/i.test(itemName) || /wall of (stone|force)/i.test(activityName)) return false;
+  if (kind === "cast" && item.type === "spell" && (activityName || itemName) === itemName) return false;
+  return true;
+}
+
+/**
+ * Spell-specific fields the activity data does not store on its own.
+ * @param {object} action
+ * @param {object} item
+ * @param {{ doc: object, abilities: Record<string, number>, prof: number }|undefined} [ctx]
+ * @returns {object}
+ */
+function applySpellShape(action, item, ctx) {
+  const props = item.system?.properties ?? [];
+  if (props.includes("concentration")) action.concentration = true;
+  const duration = item.system?.duration;
+  const amount = Number(duration?.value);
+  if (Number.isFinite(amount) && amount > 0) {
+    if (duration.units === "round" || duration.units === "rounds") action.durationRounds = amount;
+    else if (duration.units === "minute") action.durationRounds = amount * 10;
+  }
+  if (item.type !== "spell") return action;
+  const name = item.name || "";
+  const ident = item.system?.identifier || "";
+  const level = Number(item.system?.level) || 0;
+  if (name === "Web" || ident === "web") {
+    action.zone = "web";
+    action.damage = [];
+    action.onSave = "none";
+    action.conditions = ["restrained"];
+    action.concentration = true;
+    action.burn = { dice: "2d4", type: "fire" };
+  } else if (name === "Grease" || ident === "grease") {
+    action.zone = "grease";
+    action.damage = [];
+    action.onSave = "none";
+    action.conditions = ["prone"];
+    action.concentration = true;
+  } else if (name === "Slow" || ident === "slow") {
+    action.conditions = ["slowed"];
+    action.onSave = "none";
+    action.concentration = true;
+    action.repeatSave = true;
+    action.limit = 6;
+  } else if (name === "Command" || ident === "command") {
+    action.command = true;
+    action.onSave = "none";
+    action.damage = [];
+  } else if (name === "Spirit Guardians" || ident === "spirit-guardians") {
+    // The Cast activity has no save of its own. The ring is the whole spell.
+    action.kind = "spell";
+    delete action.profile;
+    delete action.useKey;
+    action.area = { type: "radius", size: 15, origin: "self" };
+    action.zone = "spirit";
+    action.saveAbility = "wis";
+    action.onSave = "half";
+    action.damage = [{ dice: "3d8", type: "radiant" }];
+    action.damageChoice = ["Radiant", "Necrotic"];
+    action.concentration = true;
+    if (ctx) action.saveDc = spellSaveDc(ctx);
+  }
+  if (name === "Scorching Ray" || ident === "scorching-ray") action.rays = (level || 2) + 1;
+  return action;
+}
 
 const tokenMap = JSON.parse(
   fs.readFileSync(path.join(ROOT, "json/fa-token-mapping.json"), "utf8")
@@ -1235,7 +1478,8 @@ function finish(action, item, activity) {
     }
     if (names.length) action.conditions = names;
   }
-  return action;
+  if (!action.activation) action.activation = activationOf(item, activity);
+  return applySpellShape(action, item);
 }
 
 /**
@@ -1382,9 +1626,69 @@ function dartCount(count, level) {
  * @param {boolean} monster
  * @returns {object|null}
  */
-function toAction(doc, item, activity, abilities, prof, monster) {
+/**
+ * A class feature, potion, or other activity that is not an attack or a save.
+ * @param {object} doc
+ * @param {object} item
+ * @param {object} activity
+ * @param {Record<string, number>} abilities
+ * @param {number} prof
+ * @param {boolean} monster
+ * @param {number} level
+ * @returns {object|null}
+ */
+function toFeature(doc, item, activity, abilities, prof, monster, level) {
+  if (!exportFeature(item, activity, monster)) return null;
+  const levels = classLevels(doc);
+  const profile = profileFor(item, activity);
+  const name = activity.name && !/^consume$/i.test(activity.name) ? activity.name : (item.name || "Feature");
+  const action = {
+    name,
+    img: typeof item.img === "string" && item.img.length > 0 ? item.img : null,
+    kind: activity.type === "heal" && profile !== "lay-on-hands" && profile !== "remove-poison" ? "heal" : "feature",
+    activation: activationOf(item, activity),
+    profile,
+    useKey: item.name || name
+  };
+  const uses = itemUses(item, doc, abilities, level);
+  const spends = (activity.consumption?.targets ?? []).some(target => target?.type === "itemUses")
+    || item.type === "consumable";
+  if (spends && uses != null) action.uses = uses;
+  if (profile === "lay-on-hands") {
+    action.pool = 5 * (levels.paladin || 0);
+    action.uses = action.pool;
+  }
+  if (activity.type === "heal" && profile !== "lay-on-hands") {
+    const dice = healDice(activity, levels);
+    if (dice) action.heal = dice;
+  }
+  if (profile === "rage") {
+    const row = scaleAt("barbarian", "rage-damage", level);
+    action.rageDamage = row?.value ?? 2;
+  }
+  if (profile === "bardic") {
+    const row = scaleAt("bard", "inspiration", level);
+    action.bardic = `1d${row?.faces || 6}`;
+  }
+  if (profile === "flurry") {
+    const row = scaleAt("monk", "die", level);
+    const mod = Math.max(abilityMod(abilities.str), abilityMod(abilities.dex));
+    action.strike = `1d${row?.faces || 6}${mod ? (mod > 0 ? `+${mod}` : String(mod)) : ""}`;
+    action.rays = 2;
+  }
+  const sentence = firstSentence(plainText(item.system?.description?.value));
+  if (sentence) action.logText = sentence.slice(0, 240);
+  return applySpellShape(action, item, { doc, abilities, prof });
+}
+
+function toAction(doc, item, activity, abilities, prof, monster, level) {
   const kind = activity.type;
-  if (kind !== "attack" && kind !== "save" && kind !== "damage") return null;
+  if (/^attack (at|with) advantage$/i.test(activity.name || "")) return null;
+  const ident = item.system?.identifier || "";
+  if ((item.name === "Spirit Guardians" || ident === "spirit-guardians") && kind === "save") return null;
+  if (kind !== "attack" && kind !== "save" && kind !== "damage") {
+    return toFeature(doc, item, activity, abilities, prof, monster, level);
+  }
 
   const classification = activity.attack?.type?.classification;
   const isSpell = item.type === "spell" || classification === "spell";
@@ -1524,10 +1828,18 @@ function toCreature(doc, sourcePath, monster) {
       .slice()
       .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
     const built = [];
+    const riders = activities.filter(activity => /^attack (at|with) advantage$/i.test(activity.name || ""));
     for (const activity of activities) {
-      const action = toAction(doc, item, activity, abilities, prof, monster);
+      const action = toAction(doc, item, activity, abilities, prof, monster, level);
       if (!action) continue;
       built.push({ action, raw: typeof activity.name === "string" ? activity.name.trim() : "" });
+    }
+    for (const rider of riders) {
+      const extra = (rider.damage?.parts ?? []).map(part => damageEntry(part, 0, false)).find(Boolean);
+      const host = built.find(entry => (
+        entry.action.kind === "weapon" || entry.action.kind === "attack" || entry.action.toHit !== undefined
+      ) && !entry.action.advantageRider);
+      if (host && extra) host.action.advantageRider = extra;
     }
     const placeholders = built.filter(entry => isPlaceholder(entry.raw));
     if (placeholders.length === 1 && item.name) placeholders[0].action.name = item.name;
@@ -1804,6 +2116,89 @@ if (!panels?.area || panels.area.type !== "wall" || panels.area.size !== 10 || p
 const agonizing = sefris?.features?.find(feature => feature.name === "Agonizing Blast");
 if (!agonizing?.summary.includes("Charisma") || !agonizing.summary.includes("more than once")) {
   failures.push(`Agonizing Blast is ${JSON.stringify(agonizing)}`);
+}
+const boss = monsters.find(monster => monster.id === "mmGoblinBoss0000");
+const bossBow = boss?.actions.find(action => action.name === "Shortbow");
+if (boss?.actions.some(action => /advantage/i.test(action.name))) {
+  failures.push("Goblin Boss still has an advantage button");
+}
+if (!bossBow?.advantageRider || bossBow.advantageRider.dice !== "1d4" || bossBow.advantageRider.type !== "piercing") {
+  failures.push(`Goblin Boss Shortbow rider is ${JSON.stringify(bossBow && bossBow.advantageRider)}`);
+}
+const web = zanna?.actions.find(action => action.name === "Web");
+if (!web?.zone || web.zone !== "web" || (web.damage || []).length || web.conditions?.[0] !== "restrained" || !web.concentration) {
+  failures.push(`Web is ${JSON.stringify(web && { zone: web.zone, damage: web.damage, conditions: web.conditions, concentration: web.concentration })}`);
+}
+const slow = zanna?.actions.find(action => action.name === "Slow");
+if (!slow?.repeatSave || slow.conditions?.[0] !== "slowed" || !slow.concentration || slow.limit !== 6) {
+  failures.push(`Slow is ${JSON.stringify(slow && { conditions: slow.conditions, repeatSave: slow.repeatSave, limit: slow.limit })}`);
+}
+const command = sefris?.actions.find(action => action.name === "Command");
+if (!command?.command) failures.push("Command does not ask for a word");
+const rays = zanna?.actions.find(action => action.name === "Scorching Ray");
+if (rays?.rays !== 3) failures.push(`Scorching Ray rays are ${rays?.rays}`);
+const wind = randal?.actions.find(action => action.name === "Second Wind");
+if (!wind || wind.activation !== "bonus" || wind.heal !== "1d10+5" || wind.uses !== 3) {
+  failures.push(`Second Wind action is ${JSON.stringify(wind && { activation: wind.activation, heal: wind.heal, uses: wind.uses, kind: wind.kind })}`);
+}
+const surgeAction = randal?.actions.find(action => action.name === "Action Surge");
+if (!surgeAction || surgeAction.profile !== "action-surge" || surgeAction.uses !== 1) {
+  failures.push(`Action Surge action is ${JSON.stringify(surgeAction && { profile: surgeAction.profile, uses: surgeAction.uses, activation: surgeAction.activation })}`);
+}
+const potion = randal?.actions.find(action => action.name === "Potion of Healing");
+if (!potion || potion.heal !== "2d4+2" || potion.activation !== "bonus" || potion.uses !== 2) {
+  failures.push(`Potion is ${JSON.stringify(potion && { heal: potion.heal, activation: potion.activation, uses: potion.uses })}`);
+}
+const merric = characters.find(character => character.id === "MerricLv05000000");
+const rage = merric?.actions.find(action => action.profile === "rage");
+if (!rage || rage.activation !== "bonus" || rage.rageDamage !== 2 || rage.uses !== 3) {
+  failures.push(`Rage is ${JSON.stringify(rage && { activation: rage.activation, rageDamage: rage.rageDamage, uses: rage.uses })}`);
+}
+const riswynn = characters.find(character => character.id === "RiswynnLv0500000");
+const dash = riswynn?.actions.find(action => action.name === "Dash");
+if (!dash || dash.profile !== "dash" || dash.activation !== "bonus") {
+  failures.push(`Cunning Action Dash is ${JSON.stringify(dash)}`);
+}
+if ([...characters, ...monsters].some(creature => (creature.actions || []).some(action => /wall of force/i.test(action.name)))) {
+  failures.push("Wall of Force became a button");
+}
+const grease = morthos5?.actions.find(action => action.name === "Grease");
+if (!grease?.zone || grease.zone !== "grease" || grease.conditions?.[0] !== "prone") {
+  failures.push(`Grease is ${JSON.stringify(grease && { zone: grease.zone, conditions: grease.conditions })}`);
+}
+const guardians = (akra?.actions || []).filter(action => action.name === "Spirit Guardians");
+const spirit = guardians[0];
+if (
+  (akra?.actions || []).some(action => action.name === "Emanation Save")
+  || guardians.length !== 1
+  || spirit?.kind !== "spell"
+  || spirit?.zone !== "spirit"
+  || spirit?.profile
+  || spirit?.area?.type !== "radius"
+  || spirit?.area?.size !== 15
+  || spirit?.area?.origin !== "self"
+  || spirit?.saveAbility !== "wis"
+  || spirit?.saveDc !== 15
+  || spirit?.onSave !== "half"
+  || spirit?.damage?.[0]?.dice !== "3d8"
+  || spirit?.damage?.[0]?.type !== "radiant"
+  || spirit?.damageChoice?.join(",") !== "Radiant,Necrotic"
+  || !spirit?.concentration
+  || spirit?.durationRounds !== 100
+) {
+  failures.push(`Spirit Guardians is ${JSON.stringify(spirit && {
+    kind: spirit.kind,
+    zone: spirit.zone,
+    profile: spirit.profile,
+    area: spirit.area,
+    saveAbility: spirit.saveAbility,
+    saveDc: spirit.saveDc,
+    onSave: spirit.onSave,
+    damage: spirit.damage,
+    damageChoice: spirit.damageChoice,
+    concentration: spirit.concentration,
+    durationRounds: spirit.durationRounds
+  })}`);
 }
 const leftover = [...characters, ...monsters].flatMap(creature => creature.traits || creature.features || [])
   .filter(trait => /\[\[|&Reference|Foundry Note|@Embed/.test(trait.summary));

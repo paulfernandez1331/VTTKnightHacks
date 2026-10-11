@@ -95,6 +95,16 @@ h2 {
 }
 .roster button { width: 100%; text-align: left; }
 
+.monster-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.monster-control input { margin: 0; }
+
 button {
   font: inherit;
   font-size: 14px;
@@ -137,6 +147,8 @@ button.danger { margin-top: 12px; border-color: var(--monster); }
 .defenses { font-size: 14px; margin: 6px 0; }
 
 .attack-actions { display: flex; flex-direction: column; gap: 6px; }
+.attack-actions select, .attack-actions input, .hp-row input { width: 7rem; }
+.hp-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
 .attack-actions button { text-align: left; }
 .attack-actions button.armed { border-color: var(--brass); color: var(--brass); }
 .attack-actions button:disabled { opacity: 0.45; cursor: not-allowed; border-color: #44505e; }

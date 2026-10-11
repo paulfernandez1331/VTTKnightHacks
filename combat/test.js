@@ -582,6 +582,14 @@ if (!turn || turn.area || !turn.targets || turn.targets[0] !== 'undead') {
 if (!sear || !sear.area || sear.area.type !== 'radius' || sear.area.size !== 30 || sear.area.origin !== 'self' || !sear.targets || sear.targets[0] !== 'undead') {
   fail(`Sear Undead is ${JSON.stringify(sear && { area: sear.area, targets: sear.targets })}`);
 }
+const guardians = akra && akra.actions.filter((action) => action.name === 'Spirit Guardians');
+const spirit = guardians && guardians[0];
+if (!guardians || guardians.length !== 1 || (akra.actions || []).some((action) => action.name === 'Emanation Save')
+  || spirit.zone !== 'spirit' || spirit.kind !== 'spell' || !spirit.area || spirit.area.origin !== 'self'
+  || spirit.area.size !== 15 || spirit.saveDc !== 15 || spirit.onSave !== 'half' || !spirit.concentration
+  || spirit.durationRounds !== 100) {
+  fail(`Spirit Guardians is ${JSON.stringify(spirit && { zone: spirit.zone, kind: spirit.kind, area: spirit.area, saveDc: spirit.saveDc })}`);
+}
 const zombie = catalog.mmZombie00000000;
 if (!zombie || zombie.type !== 'undead') fail(`Zombie type is ${zombie && zombie.type}`);
 const cleric = placed(70, akra, 'Akra', 1, 1);

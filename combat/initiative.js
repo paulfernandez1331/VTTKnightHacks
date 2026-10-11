@@ -21,6 +21,27 @@ function speedOf(creature) {
   return creature.speed > 0 ? creature.speed : DEFAULT_SPEED;
 }
 
+// Half speed after the zero-to-30 fallback. Restrained cannot move at all.
+function speedNow(creature, token) {
+  let speed = speedOf(creature);
+  if (token && (token.conditions || []).includes('slowed')) speed = Math.floor(speed / 2);
+  if (token && (token.conditions || []).includes('restrained')) return 0;
+  return speed;
+}
+
+function attacksThisAction(creature, token) {
+  if (token && (token.conditions || []).includes('slowed')) return 1;
+  return attacksPerAction(creature);
+}
+
+// A weapon or monster attack can use Extra Attack. Spells, heals, and features cannot.
+function isAttackAction(action) {
+  if (!action) return true;
+  if (action.kind === 'spell' || action.kind === 'heal' || action.kind === 'feature') return false;
+  if (action.saveAbility || action.profile) return false;
+  return true;
+}
+
 // The exported data keeps Multiattack as rules text, not a number. So read the
 // count out of a sentence like "The owlbear makes two Rend attacks."
 // Anything we cannot read counts as a single attack.
@@ -112,6 +133,10 @@ function beginTurn(tracker, tokens, catalog) {
     tokenId: token.id,
     actionUsed: false,
     attacksLeft: 0, // extra swings left from the Attack action
+    bonusUsed: false,
+    extraAction: false,
+    dashed: false,
+    moved: false,
     movementLeft: speedOf(catalog[token.creatureId]),
   };
   delete tracker.reactionUsed[token.id]; // reactions come back on your own turn
@@ -197,31 +222,80 @@ function removeFromCombat(tracker, tokenId, tokens, catalog) {
 // ---------- Action economy ----------
 
 // Checks without changing anything. Call this before rolling the attack.
-function checkAttack(tracker, tokenId) {
+// action is optional. Older callers that only pass the token still mean "an attack".
+function checkAttack(tracker, tokenId, action, token) {
   if (!tracker.active) return { ok: true }; // free-form play outside combat
 
-  if (tracker.turn.tokenId !== tokenId) {
+  if (!tracker.turn || tracker.turn.tokenId !== tokenId) {
     return { ok: false, error: 'It is not that token\'s turn.' };
   }
-  if (tracker.turn.attacksLeft > 0 || !tracker.turn.actionUsed) {
+
+  const turn = tracker.turn;
+  const activation = (action && action.activation) || 'action';
+  const slowed = token && (token.conditions || []).includes('slowed');
+
+  if (activation === 'bonus') {
+    if (turn.bonusUsed) return { ok: false, error: 'Bonus action already used.' };
+    if (slowed && turn.actionUsed) return { ok: false, error: 'Slowed: that used the action, so the bonus action is gone.' };
     return { ok: true };
   }
-  return { ok: false, error: 'No action or attacks left this turn.' };
+  if (activation === 'reaction') {
+    if (tracker.reactionUsed[tokenId]) return { ok: false, error: 'Reaction already used.' };
+    return { ok: true };
+  }
+  if (activation === 'special') return { ok: true };
+
+  if (slowed && turn.bonusUsed && turn.attacksLeft === 0) {
+    return { ok: false, error: 'Slowed: that used the bonus action, so the action is gone.' };
+  }
+  if (isAttackAction(action)) {
+    if (turn.attacksLeft > 0 || !turn.actionUsed || turn.extraAction) return { ok: true };
+    return { ok: false, error: 'No action or attacks left this turn.' };
+  }
+  if (!turn.actionUsed) return { ok: true };
+  if (turn.extraAction && action && action.kind !== 'spell' && action.kind !== 'heal') return { ok: true };
+  return { ok: false, error: 'No action left this turn.' };
 }
 
 // Call this after the attack resolved successfully, so a rules error
 // (like out of range) never costs the player their action.
-function spendAttack(tracker, tokenId, creature) {
-  const check = checkAttack(tracker, tokenId);
+function spendAttack(tracker, tokenId, creature, action, token) {
+  const check = checkAttack(tracker, tokenId, action, token);
   if (!check.ok || !tracker.active) return check;
 
   const turn = tracker.turn;
-  if (turn.attacksLeft > 0) {
-    turn.attacksLeft--;
-  } else {
-    // First attack uses the action and unlocks the rest of the Attack action.
+  const activation = (action && action.activation) || 'action';
+  if (activation === 'bonus') {
+    turn.bonusUsed = true;
+    return { ok: true };
+  }
+  if (activation === 'reaction') {
+    tracker.reactionUsed[tokenId] = true;
+    return { ok: true };
+  }
+  if (activation === 'special') return { ok: true };
+
+  if (isAttackAction(action)) {
+    if (turn.attacksLeft > 0) {
+      turn.attacksLeft--;
+    } else if (!turn.actionUsed) {
+      turn.actionUsed = true;
+      turn.attacksLeft = attacksThisAction(creature, token) - 1;
+    } else if (turn.extraAction) {
+      turn.extraAction = false;
+      turn.actionUsed = true;
+      turn.attacksLeft = attacksThisAction(creature, token) - 1;
+    }
+    return { ok: true };
+  }
+
+  if (!turn.actionUsed) {
     turn.actionUsed = true;
-    turn.attacksLeft = attacksPerAction(creature) - 1;
+    turn.attacksLeft = 0;
+  } else if (turn.extraAction) {
+    turn.extraAction = false;
+    turn.actionUsed = true;
+    turn.attacksLeft = 0;
   }
   return { ok: true };
 }
@@ -236,6 +310,7 @@ function spendMovement(tracker, tokenId, feet) {
     return { ok: false, error: `Only ${tracker.turn.movementLeft} ft of movement left.` };
   }
   tracker.turn.movementLeft -= feet;
+  tracker.turn.moved = true;
   return { ok: true };
 }
 
@@ -253,6 +328,9 @@ function publicView(tracker) {
           actionUsed: tracker.turn.actionUsed,
           attacksLeft: tracker.turn.attacksLeft,
           movementLeft: tracker.turn.movementLeft,
+          bonusUsed: !!tracker.turn.bonusUsed,
+          extraAction: !!tracker.turn.extraAction,
+          reactionUsed: !!tracker.reactionUsed[tracker.turn.tokenId],
         }
       : null,
   };
@@ -276,6 +354,8 @@ module.exports = {
   addToCombat,
   removeFromCombat,
   attacksPerAction,
+  attacksThisAction,
+  speedNow,
   currentTokenId,
   checkAttack,
   spendAttack,

@@ -9,12 +9,15 @@ const { GRID, insideRoom } = require('./public/rules.js');
 const { resolveAttack } = require('./combat/attack.js');
 const init = require('./combat/initiative.js');
 const { runMonsterTurn } = require('./combat/monsterTurn.js');
+const table = require('./combat/table.js');
 
 const PORT = process.env.PORT || 3000;
 const DM_CODE = process.env.DM_CODE || 'dm';
 
-// Set AUTO_MONSTERS=false to run monster turns by hand as the DM instead.
+// AUTO_MONSTERS=false starts with the DM playing monster turns.
+// The DM can switch this during the game. autoMonsters is the live switch.
 const AUTO_MONSTERS = process.env.AUTO_MONSTERS !== 'false';
+let autoMonsters = AUTO_MONSTERS;
 
 const monsters = require('./data/monsters.json');
 const characters = require('./data/characters.json');
@@ -62,7 +65,16 @@ app.use('/vendor/konva', express.static(path.join(__dirname, 'node_modules/konva
 app.use('/tokens', express.static(path.join(__dirname, '../dnd5e/tokens')));
 
 // The one source of truth. Clients only ever send intents.
-const board = { tokens: [], nextId: 1, log: [], nextLogId: 1, tracker: init.createTracker() };
+const board = {
+  tokens: [],
+  nextId: 1,
+  log: [],
+  nextLogId: 1,
+  tracker: init.createTracker(),
+  zones: [],
+  nextZoneId: 1,
+  history: [],
+};
 const MAX_LOG_ENTRIES = 100;
 
 // Build the view a given role is allowed to see.
@@ -75,7 +87,11 @@ function buildState(isDM) {
     const c = catalog[t.creatureId];
     const canSeeAll = isDM || c.team === 'player';
     creatures[c.id] = canSeeAll ? c : { id: c.id, name: c.name, team: c.team, token: c.token, type: c.type };
-    return canSeeAll ? t : { ...t, hp: null, maxHp: null };
+    if (canSeeAll) return t;
+    const hidden = Object.assign({}, t, { hp: null, maxHp: null });
+    delete hidden.marks;
+    delete hidden.uses;
+    return hidden;
   });
 
   const roster = Object.values(catalog)
@@ -93,7 +109,27 @@ function buildState(isDM) {
     lines: isDM ? entry.dm : [entry.pub],
   }));
 
-  return { tokens, creatures, roster, log, tracker: init.publicView(board.tracker), isDM };
+  const zones = (board.zones || []).map((zone) => ({
+    id: zone.id,
+    kind: zone.kind,
+    spell: zone.spell,
+    squares: table.zoneSquares(zone, board.tokens),
+    burning: zone.burning || [],
+    saveDc: zone.saveDc,
+    damageType: zone.damageType || null,
+  }));
+
+  return {
+    tokens,
+    creatures,
+    roster,
+    log,
+    zones,
+    tracker: init.publicView(board.tracker),
+    isDM,
+    autoMonsters,
+    monsterBusy: monsterTurnRunning,
+  };
 }
 
 function broadcast() {
@@ -165,7 +201,10 @@ function placeCreature(creature) {
     maxHp: creature.hp,
     defeated: false,
     conditions: [],
+    marks: [],
+    uses: {},
   };
+  table.initUses(token, creature);
   board.tokens.push(token);
   init.addToCombat(board.tracker, token, catalog);
   return token;
@@ -227,26 +266,49 @@ function performMove(token, x, y, free) {
     return { ok: false, error: 'That spot is blocked.' };
   }
 
-  if (!free) {
-    // Cost is how far the token's corner travels, with 5e diagonals.
-    const steps = Math.max(Math.abs(x - token.x), Math.abs(y - token.y));
-    const spent = init.spendMovement(board.tracker, token.id, steps * GRID.feetPerSquare);
-    if (!spent.ok) return spent;
+  let cost = 0;
+  if (!free && board.tracker.active) {
+    if (!board.tracker.turn || board.tracker.turn.tokenId !== token.id) {
+      return { ok: false, error: 'It is not that token\'s turn.' };
+    }
+    cost = table.movementCost(token, x, y, board.zones, board.tokens);
+    if (cost > board.tracker.turn.movementLeft) {
+      return { ok: false, error: `Only ${board.tracker.turn.movementLeft} ft of movement left.` };
+    }
   }
 
+  const from = { x: token.x, y: token.y };
+  table.snapshot(board);
+  if (!free && board.tracker.active) init.spendMovement(board.tracker, token.id, cost);
   token.x = x;
   token.y = y;
+  const lines = free ? [] : table.enterZones(board, catalog, token, from);
+  if (lines.length) addLog('hit', lines, lines[0]);
   broadcast();
   return { ok: true };
 }
 
 // Players and monsters both attack through here too.
 // square is the aim of an area. A weapon attack leaves it empty.
-function performAttack(attacker, target, actionName, square) {
+function performAttack(attacker, target, actionName, square, options) {
   const creature = catalog[attacker.creatureId];
+  const action = creature && (creature.actions || []).find((entry) => entry.name === actionName);
+  options = options || {};
+
+  if (action && (action.kind === 'heal' || action.kind === 'feature')) {
+    const used = table.useFeature(board, catalog, attacker, action, {
+      target,
+      amount: options.amount,
+    });
+    if (!used.ok) return used;
+    addLog('hit', used.lines, used.pub);
+    broadcast();
+    checkForVictory();
+    return { ok: true };
+  }
 
   // Is it this token's turn, and does it still have an action or attack left?
-  const turnCheck = init.checkAttack(board.tracker, attacker.id);
+  const turnCheck = init.checkAttack(board.tracker, attacker.id, action, attacker);
   if (!turnCheck.ok) return turnCheck;
 
   const result = resolveAttack({
@@ -256,29 +318,36 @@ function performAttack(attacker, target, actionName, square) {
     tokens: board.tokens,
     catalog,
     square,
+    commandWord: options.commandWord,
+    damageType: options.damageType,
   });
   if (!result.ok) return { ok: false, error: result.error };
 
   // Only spend the action once the attack really happened, so a rules error
   // like "out of range" never costs anyone their turn.
-  init.spendAttack(board.tracker, attacker.id, creature);
-
-  (result.targets || []).forEach((entry) => {
-    const token = board.tokens.find((t) => t.id === entry.id);
-    if (!token) return;
-    token.hp = entry.hpAfter;
-    token.defeated = entry.defeated;
-    if (!Array.isArray(token.conditions)) token.conditions = [];
-    const immune = (catalog[token.creatureId] && catalog[token.creatureId].conditionImmune) || [];
-    (entry.conditions || []).forEach((name) => {
-      if (immune.includes(name) || token.conditions.includes(name)) return;
-      token.conditions.push(name);
-    });
-  });
-
-  addLog(result.outcome, result.dm, result.pub);
+  table.snapshot(board);
+  init.spendAttack(board.tracker, attacker.id, creature, action, attacker);
+  const applied = table.applyAttack(board, catalog, attacker, action || { name: actionName }, result);
+  addLog(result.outcome, applied.lines, applied.pub);
   broadcast();
   checkForVictory();
+  return { ok: true };
+}
+
+function performDash(token) {
+  const creature = catalog[token.creatureId];
+  const action = { name: 'Dash', activation: 'action', kind: 'feature', profile: 'dash' };
+  const turnCheck = init.checkAttack(board.tracker, token.id, action, token);
+  if (!turnCheck.ok) return turnCheck;
+  const speed = init.speedNow(creature, token);
+  if (!board.tracker.turn || speed <= 0) return { ok: false, error: `${token.name} cannot dash.` };
+  table.snapshot(board);
+  init.spendAttack(board.tracker, token.id, creature, action, token);
+  board.tracker.turn.movementLeft += speed;
+  board.tracker.turn.dashed = true;
+  const line = `${token.name} dashes and gains ${speed} ft of movement.`;
+  addLog('hit', [line], `${token.name} dashes.`);
+  broadcast();
   return { ok: true };
 }
 
@@ -299,12 +368,13 @@ let monsterTurnRunning = false;
 // If the acting token is a monster, play its whole turn, then move on.
 async function maybeRunMonsterTurn() {
   const tracker = board.tracker;
-  if (!AUTO_MONSTERS || !tracker.active || monsterTurnRunning) return;
+  if (!autoMonsters || !tracker.active || monsterTurnRunning) return;
 
   const token = board.tokens.find((t) => t.id === init.currentTokenId(tracker));
   if (!token || token.team !== 'monster') return;
 
   monsterTurnRunning = true;
+  broadcast();
   try {
     await runMonsterTurn({
       token,
@@ -312,6 +382,8 @@ async function maybeRunMonsterTurn() {
       catalog,
       tracker,
       performMove: (t, step) => performMove(t, step.x, step.y, false),
+      performDash: (t) => performDash(t),
+      costOf: (t, x, y) => table.movementCost(t, x, y, board.zones, board.tokens),
       performAttack: (t, step) => {
         const target = board.tokens.find((x) => x.id === step.targetId);
         return performAttack(t, target, step.actionName);
@@ -328,10 +400,31 @@ async function maybeRunMonsterTurn() {
   if (tracker.active) advanceTurn();
 }
 
-function advanceTurn() {
-  init.endTurn(board.tracker, board.tokens, catalog);
+function beginActing() {
+  if (!board.tracker.active) {
+    broadcast();
+    return;
+  }
+  const token = board.tokens.find((t) => t.id === init.currentTokenId(board.tracker));
+  if (token) {
+    const started = table.onTurnStart(board, catalog, token);
+    if (started.lines.length) addLog('hit', started.lines, started.lines[0]);
+    if (started.ended) {
+      advanceTurn();
+      return;
+    }
+  }
   broadcast();
-  maybeRunMonsterTurn(); // chains straight into the next monster, if there is one
+  maybeRunMonsterTurn();
+}
+
+function advanceTurn() {
+  const acting = board.tokens.find((t) => t.id === init.currentTokenId(board.tracker));
+  const ending = acting ? table.onTurnEnd(board, catalog, acting) : [];
+  if (ending.length) addLog('hit', ending, ending[0]);
+  table.snapshot(board);
+  init.endTurn(board.tracker, board.tokens, catalog);
+  beginActing();
 }
 
 io.on('connection', (socket) => {
@@ -403,31 +496,48 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('attack:declare', ({ attackerId, targetId, actionName, square }) => {
+  socket.on('attack:declare', ({ attackerId, targetId, actionName, square, commandWord, amount, damageType }) => {
     const attacker = board.tokens.find((t) => t.id === attackerId);
     if (!attacker) return;
 
     // Players can only attack with their own side's tokens.
     if (!socket.data.isDM && attacker.team !== 'player') return;
 
+    if (actionName === 'Break free') {
+      const result = table.breakFree(board, catalog, attacker);
+      if (!result.ok) {
+        socket.emit('attack:error', { message: result.error });
+        return;
+      }
+      addLog('hit', result.lines, result.pub);
+      broadcast();
+      return;
+    }
+
     const creature = catalog[attacker.creatureId];
     const action = creature && (creature.actions || []).find((entry) => entry.name === actionName);
     let target = null;
     let aim = null;
+    const optionalTarget = action && (action.kind === 'heal' || action.kind === 'feature');
 
     if (action && action.area) {
-      if (!square || !Number.isInteger(square.x) || !Number.isInteger(square.y)) {
+      if (action.zone === 'spirit') {
+        aim = null;
+      } else if (!square || !Number.isInteger(square.x) || !Number.isInteger(square.y)) {
         socket.emit('attack:error', { message: 'Choose a square for that spell.' });
         return;
+      } else {
+        aim = { x: square.x, y: square.y };
       }
-      aim = { x: square.x, y: square.y };
+    } else if (optionalTarget) {
+      target = targetId ? board.tokens.find((t) => t.id === targetId) : null;
     } else {
       target = board.tokens.find((t) => t.id === targetId);
       if (!target || attacker.id === target.id) return;
     }
 
     // Rule problems (not your turn, out of range) go back to the sender only.
-    const result = performAttack(attacker, target, actionName, aim);
+    const result = performAttack(attacker, target, actionName, aim, { commandWord, amount, damageType });
     if (!result.ok) socket.emit('attack:error', { message: result.error });
   });
 
@@ -435,7 +545,9 @@ io.on('connection', (socket) => {
     if (!socket.data.isDM) return;
     const token = board.tokens.find((t) => t.id === id);
     if (!token || !Array.isArray(token.conditions)) return;
+    table.snapshot(board);
     token.conditions = token.conditions.filter((condition) => condition !== name);
+    if (Array.isArray(token.marks)) token.marks = token.marks.filter((mark) => mark.name !== name);
     broadcast();
   });
 
@@ -444,14 +556,69 @@ io.on('connection', (socket) => {
     if (!socket.data.isDM) return;
     const token = board.tokens.find((t) => t.id === id);
     if (!token) return;
-    token.hp = token.maxHp;
-    token.defeated = false;
+    const result = table.setHp(board, token, token.maxHp);
+    if (!result.ok) return;
+    addLog('hit', result.lines, result.pub);
+    broadcast();
+  });
+
+  socket.on('token:set-hp', ({ id, hp }) => {
+    if (!socket.data.isDM) return;
+    const token = board.tokens.find((t) => t.id === id);
+    if (!token) return;
+    const result = table.setHp(board, token, hp);
+    if (!result.ok) {
+      socket.emit('attack:error', { message: result.error });
+      return;
+    }
+    addLog('hit', result.lines, result.pub);
+    broadcast();
+    checkForVictory();
+  });
+
+  socket.on('token:restore-use', ({ id, key }) => {
+    if (!socket.data.isDM) return;
+    const token = board.tokens.find((t) => t.id === id);
+    if (!token) return;
+    const result = table.restoreUse(board, token, key);
+    if (!result.ok) {
+      socket.emit('attack:error', { message: result.error });
+      return;
+    }
+    addLog('hit', result.lines, result.pub);
+    broadcast();
+  });
+
+  socket.on('zone:remove', ({ id }) => {
+    if (!socket.data.isDM) return;
+    table.snapshot(board);
+    const lines = [];
+    const result = table.removeZone(board, id, lines);
+    if (!result.ok) {
+      table.undo(board);
+      return;
+    }
+    addLog('hit', lines.length ? lines : result.lines, result.pub);
+    broadcast();
+  });
+
+  socket.on('combat:undo', () => {
+    if (!socket.data.isDM) return;
+    const result = table.undo(board);
+    if (!result.ok) {
+      socket.emit('attack:error', { message: result.error });
+      return;
+    }
     broadcast();
   });
 
   socket.on('token:remove', ({ id }) => {
     if (!socket.data.isDM) return;
+    table.snapshot(board);
+    const lines = [];
+    table.releaseCaster(board, id, lines);
     board.tokens = board.tokens.filter((t) => t.id !== id);
+    if (lines.length) addLog('hit', lines, lines[0]);
     init.removeFromCombat(board.tracker, id, board.tokens, catalog);
     broadcast();
     maybeRunMonsterTurn();
@@ -467,8 +634,7 @@ io.on('connection', (socket) => {
     const summary = order.map((e) => `${e.name} ${e.total}`).join(', ');
     const text = `Combat begins. Initiative: ${summary}.`;
     addLog('hit', [text], text);
-    broadcast();
-    maybeRunMonsterTurn();
+    beginActing();
   });
 
   // The DM can end anyone's turn. A player can only end a player's turn.
@@ -487,6 +653,17 @@ io.on('connection', (socket) => {
     if (!socket.data.isDM) return;
     init.endCombat(board.tracker);
     broadcast();
+  });
+
+  // The DM can take monster turns by hand, or hand them back to the script.
+  // A turn the script already started still finishes. The next monster waits.
+  socket.on('combat:autopilot', (payload) => {
+    if (!socket.data.isDM) return;
+    const next = !!(payload && payload.on === true);
+    if (autoMonsters === next) return;
+    autoMonsters = next;
+    broadcast();
+    if (next) maybeRunMonsterTurn();
   });
 });
 

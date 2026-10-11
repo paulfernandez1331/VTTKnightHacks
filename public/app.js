@@ -16,12 +16,15 @@ const params = new URLSearchParams(window.location.search);
 const socket = io({ auth: { dmCode: params.get('dm') || '' } });
 
 const NO_COMBAT = { active: false, round: 0, currentTokenId: null, order: [], turn: null };
-let state = { tokens: [], creatures: {}, roster: [], log: [], tracker: NO_COMBAT, isDM: false };
+let state = { tokens: [], creatures: {}, roster: [], log: [], zones: [], tracker: NO_COMBAT, isDM: false };
 let openFeatures = new Set();
 let openFeatureToken = null;
 let selected = []; // token ids, the first is the "from" token for measuring
 let armed = null; // { actionName } while an area spell is waiting for a square
 let swallowClick = false;
+let commandWord = 'Halt';
+let spiritType = 'Radiant';
+let layAmount = 1;
 let tokenNodes = {}; // token id -> Konva group
 
 // ---------- Stage and layers ----------
@@ -32,10 +35,11 @@ const stage = new Konva.Stage({
   height: GRID.rows * GRID.size,
 });
 const gridLayer = new Konva.Layer();
+const zoneLayer = new Konva.Layer({ listening: false });
 const areaLayer = new Konva.Layer({ listening: false });
 const tokenLayer = new Konva.Layer();
 const measureLayer = new Konva.Layer({ listening: false });
-stage.add(gridLayer, areaLayer, tokenLayer, measureLayer);
+stage.add(gridLayer, zoneLayer, areaLayer, tokenLayer, measureLayer);
 
 function drawGrid() {
   const width = GRID.cols * GRID.size;
@@ -399,6 +403,12 @@ function renderDetail() {
   }
   box.appendChild(stats);
 
+  if (c.conditionImmune && c.conditionImmune.length && (state.isDM || token.team === 'player')) {
+    box.appendChild(el('p', `Immune to conditions: ${c.conditionImmune.join(', ')}`, 'defenses'));
+  }
+  const concentration = (token.marks || []).find((mark) => mark.name === 'concentration');
+  if (concentration) box.appendChild(el('p', `Concentrating on ${concentration.spell}`, 'defenses'));
+
   if (c.resist || c.immune || c.vuln) {
     const lines = [
       ['Resists', c.resist],
@@ -450,10 +460,32 @@ function renderDetail() {
     box.appendChild(row);
   });
 
-  if (state.isDM) {
+  if (state.isDM && token.hp !== null) {
+    const hpRow = el('div', undefined, 'hp-row');
+    const hpInput = document.createElement('input');
+    hpInput.type = 'number';
+    hpInput.min = '0';
+    hpInput.max = String(token.maxHp);
+    hpInput.value = String(token.hp);
+    const setHp = el('button', 'Set HP');
+    setHp.addEventListener('click', () => socket.emit('token:set-hp', { id: token.id, hp: Number(hpInput.value) }));
+    hpRow.appendChild(hpInput);
+    hpRow.appendChild(setHp);
+    box.appendChild(hpRow);
+
     const restore = el('button', 'Restore HP');
     restore.addEventListener('click', () => socket.emit('token:restore', { id: token.id }));
     box.appendChild(restore);
+
+    Object.entries(token.uses || {}).forEach(([key, bag]) => {
+      const row = el('div', undefined, 'condition-row');
+      row.appendChild(el('span', `${key}: ${bag.left}/${bag.max}`));
+      const back = el('button', 'Give back');
+      back.type = 'button';
+      back.addEventListener('click', () => socket.emit('token:restore-use', { id: token.id, key }));
+      row.appendChild(back);
+      box.appendChild(row);
+    });
 
     const remove = el('button', 'Remove token', 'danger');
     remove.addEventListener('click', () => {
@@ -639,6 +671,90 @@ function castArmed() {
   });
 }
 
+function needsCreature(action) {
+  if (action.area) return false;
+  const profile = action.profile;
+  if (profile === 'lay-on-hands' || profile === 'remove-poison' || profile === 'bardic' || profile === 'flurry') return true;
+  if (action.kind === 'heal' || action.kind === 'feature') return false;
+  return true;
+}
+
+function blockedReason(attacker, action, target, feet) {
+  const turn = state.tracker;
+  const t = turn.turn;
+  const activation = action.activation || 'action';
+  const slowed = (attacker.conditions || []).includes('slowed');
+  const raging = (attacker.conditions || []).includes('raging');
+  const bag = attacker.uses && attacker.uses[action.useKey || action.name];
+  const attackAction = action.kind !== 'spell' && action.kind !== 'heal' && action.kind !== 'feature' && !action.profile && !action.saveAbility;
+
+  if (attacker.defeated || (needsCreature(action) && target && target.defeated)) return 'a defeated token is involved';
+  if (turn.active && turn.currentTokenId !== attacker.id) return 'not this token\'s turn';
+  if (raging && action.kind === 'spell') return 'raging';
+  if (bag && bag.left <= 0) return 'no uses left';
+  if (turn.active && t) {
+    if (activation === 'bonus') {
+      if (t.bonusUsed) return 'bonus action used';
+      if (slowed && t.actionUsed) return 'slowed';
+    } else if (activation === 'reaction') {
+      if (t.reactionUsed) return 'reaction used';
+    } else if (activation !== 'special') {
+      if (slowed && t.bonusUsed && t.attacksLeft === 0) return 'slowed';
+      const extra = t.extraAction && action.kind !== 'spell' && action.kind !== 'heal';
+      if (attackAction) {
+        if (t.actionUsed && t.attacksLeft === 0 && !t.extraAction) return 'no actions left this turn';
+      } else if (t.actionUsed && !extra) return 'no actions left this turn';
+    }
+  }
+  if (needsCreature(action) && !target) return 'shift-click a target';
+  if (needsCreature(action) && action.targets && action.targets.length && !action.targets.includes(creatureKind(target))) {
+    return `only a ${typeListText(action.targets)}`;
+  }
+  if (needsCreature(action) && feet > maxReach(action)) return `out of range (${feet} ft away)`;
+  return '';
+}
+
+function addActionButton(box, attacker, target, feet, action) {
+  const button = el('button', action.name);
+  const notes = [];
+  if (action.activation && action.activation !== 'action') notes.push(action.activation);
+  if (action.saveAbility) notes.push(`DC ${action.saveDc} ${abilityLabel(action.saveAbility)}`);
+  if (action.area) notes.push(`${action.area.size}-foot ${action.area.type}`);
+  if (action.targets && action.targets.length) notes.push(typeListText(action.targets));
+  if (action.rays) notes.push(`${action.rays} attacks`);
+  const bag = attacker.uses && attacker.uses[action.useKey || action.name];
+  if (bag) notes.push(`${bag.left}/${bag.max} left`);
+
+  const reason = blockedReason(attacker, action, target, feet);
+  const hint = [reason, notes.join(', ')].filter(Boolean).join(' · ');
+  if (hint) button.appendChild(el('span', hint, 'hint'));
+  if (reason) button.disabled = true;
+  if (armed && armed.actionName === action.name && action.area) button.classList.add('armed');
+
+  button.addEventListener('click', () => {
+    if (action.zone === 'spirit') {
+      socket.emit('attack:declare', {
+        attackerId: attacker.id,
+        actionName: action.name,
+        damageType: spiritType,
+      });
+      return;
+    }
+    if (action.area) {
+      arm(action.name);
+      return;
+    }
+    socket.emit('attack:declare', {
+      attackerId: attacker.id,
+      targetId: target ? target.id : null,
+      actionName: action.name,
+      commandWord: action.command ? commandWord : undefined,
+      amount: action.profile === 'lay-on-hands' ? layAmount : undefined,
+    });
+  });
+  box.appendChild(button);
+}
+
 // Shows one button per action the attacker has. An area spell is aimed at a square.
 // Anything else still needs a shift-clicked creature.
 function renderAttack() {
@@ -658,67 +774,116 @@ function renderAttack() {
   const actions = (creature && creature.actions) || [];
   const allowed = state.isDM || attacker.team === 'player';
 
-  if (actions.length === 0 || !allowed) {
+  if (!allowed) {
     box.appendChild(el('p', 'Pick one of your own characters as the attacker.', 'detail-sub'));
     return;
   }
 
   const feet = target ? feetBetween(attacker, target) : null;
+  const choiceAction = actions.find((action) => action.damageChoice && action.damageChoice.length);
+  if (choiceAction) {
+    const picker = document.createElement('select');
+    choiceAction.damageChoice.forEach((word) => {
+      const option = document.createElement('option');
+      option.value = word;
+      option.textContent = word;
+      if (word === spiritType) option.selected = true;
+      picker.appendChild(option);
+    });
+    picker.addEventListener('change', () => {
+      spiritType = picker.value;
+    });
+    box.appendChild(picker);
+  }
+  if (actions.some((action) => action.command)) {
+    const picker = document.createElement('select');
+    ['Approach', 'Drop', 'Flee', 'Grovel', 'Halt'].forEach((word) => {
+      const option = document.createElement('option');
+      option.value = word;
+      option.textContent = word;
+      if (word === commandWord) option.selected = true;
+      picker.appendChild(option);
+    });
+    picker.addEventListener('change', () => {
+      commandWord = picker.value;
+    });
+    box.appendChild(picker);
+  }
+  if (actions.some((action) => action.profile === 'lay-on-hands')) {
+    const amount = document.createElement('input');
+    amount.type = 'number';
+    amount.min = '1';
+    amount.value = String(layAmount);
+    amount.addEventListener('change', () => {
+      layAmount = Math.max(1, Math.floor(Number(amount.value) || 1));
+    });
+    box.appendChild(amount);
+  }
 
-  actions.forEach((action) => {
-    const button = el('button', action.name);
-    const notes = [];
-    if (action.saveAbility) notes.push(`DC ${action.saveDc} ${abilityLabel(action.saveAbility)}`);
-    if (action.area) notes.push(`${action.area.size}-foot ${action.area.type}`);
-    if (action.targets && action.targets.length) notes.push(typeListText(action.targets));
-
-    const turn = state.tracker;
-    let reason = '';
-    if (attacker.defeated || (!action.area && target && target.defeated)) {
-      reason = 'a defeated token is involved';
-    } else if (turn.active && turn.currentTokenId !== attacker.id) {
-      reason = 'not this token\'s turn';
-    } else if (turn.active && turn.turn && turn.turn.actionUsed && turn.turn.attacksLeft === 0) {
-      reason = 'no actions left this turn';
-    } else if (!action.area && !target) {
-      reason = 'shift-click a target';
-    } else if (!action.area && action.targets && action.targets.length && !action.targets.includes(creatureKind(target))) {
-      reason = `only a ${typeListText(action.targets)}`;
-    } else if (!action.area && feet > maxReach(action)) {
-      reason = `out of range (${feet} ft away)`;
+  const held = (attacker.marks || []).some((mark) => mark.name === 'restrained' && mark.zoneId != null);
+  if (held) {
+    const button = el('button', 'Break free');
+    const reason = blockedReason(attacker, { name: 'Break free', activation: 'action', kind: 'feature', profile: 'log' }, null, 0);
+    if (reason) {
+      button.appendChild(el('span', reason, 'hint'));
+      button.disabled = true;
     }
-
-    const hint = [reason, notes.join(', ')].filter(Boolean).join(' · ');
-    if (hint) button.appendChild(el('span', hint, 'hint'));
-    if (reason) button.disabled = true;
-    if (armed && armed.actionName === action.name && action.area) button.classList.add('armed');
-
     button.addEventListener('click', () => {
-      if (action.area) {
-        arm(action.name);
-        return;
-      }
-      socket.emit('attack:declare', {
-        attackerId: attacker.id,
-        targetId: target.id,
-        actionName: action.name,
-      });
+      socket.emit('attack:declare', { attackerId: attacker.id, actionName: 'Break free' });
     });
     box.appendChild(button);
+  }
+
+  const groups = [
+    ['Action', (action) => (action.activation || 'action') === 'action'],
+    ['Bonus', (action) => action.activation === 'bonus'],
+    ['Reaction', (action) => action.activation === 'reaction'],
+    ['Special', (action) => action.activation === 'special'],
+  ];
+  groups.forEach(([label, pred]) => {
+    const list = actions.filter(pred);
+    if (list.length === 0) return;
+    box.appendChild(el('p', label, 'detail-sub'));
+    list.forEach((action) => addActionButton(box, attacker, target, feet, action));
   });
 }
 
 // Turn order, what the acting token has left, and the buttons to run combat.
+function appendMonsterControl(box) {
+  const row = el('label', undefined, 'monster-control');
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.id = 'dm-monster-control';
+  input.checked = state.autoMonsters === false;
+  input.addEventListener('change', () => {
+    socket.emit('combat:autopilot', { on: !input.checked });
+  });
+  row.appendChild(input);
+  row.appendChild(document.createTextNode('DM controls monsters'));
+  box.appendChild(row);
+
+  let note = 'Monsters take their own turns.';
+  if (state.autoMonsters === false) {
+    note = state.monsterBusy
+      ? 'Finishing the monster turn already underway.'
+      : 'You play each monster. End turn when it is done.';
+  }
+  box.appendChild(el('p', note, 'detail-sub'));
+}
+
 function renderInitiative() {
   const box = document.getElementById('initiative');
   box.replaceChildren();
   const tracker = state.tracker;
+
+  if (state.isDM) appendMonsterControl(box);
 
   if (!tracker.active) {
     if (state.isDM) {
       const start = el('button', 'Start combat');
       start.addEventListener('click', () => socket.emit('combat:start'));
       box.appendChild(start);
+      appendDmFixes(box);
     } else {
       box.appendChild(el('p', 'No combat running.', 'detail-sub'));
     }
@@ -733,8 +898,10 @@ function renderInitiative() {
   });
 
   if (tracker.turn) {
-    const actionLeft = !tracker.turn.actionUsed || tracker.turn.attacksLeft > 0;
-    const status = `Action: ${actionLeft ? 'ready' : 'used'}. Movement left: ${tracker.turn.movementLeft} ft.`;
+    const actionLeft = !tracker.turn.actionUsed || tracker.turn.attacksLeft > 0 || tracker.turn.extraAction;
+    const bonus = tracker.turn.bonusUsed ? 'used' : 'ready';
+    const extra = tracker.turn.extraAction ? ' Extra action ready.' : '';
+    const status = `Action: ${actionLeft ? 'ready' : 'used'}. Bonus: ${bonus}. Movement left: ${tracker.turn.movementLeft} ft.${extra}`;
     box.appendChild(el('p', status, 'detail-sub'));
   }
 
@@ -747,10 +914,54 @@ function renderInitiative() {
   }
 
   if (state.isDM) {
+    appendDmFixes(box);
     const end = el('button', 'End combat', 'danger');
     end.addEventListener('click', () => socket.emit('combat:end'));
     box.appendChild(end);
   }
+}
+
+function appendDmFixes(box) {
+  const undo = el('button', 'Undo');
+  undo.addEventListener('click', () => socket.emit('combat:undo'));
+  box.appendChild(undo);
+  (state.zones || []).forEach((zone) => {
+    const row = el('div', undefined, 'condition-row');
+    const extra = [
+      zone.damageType || '',
+      zone.burning && zone.burning.length ? 'burning' : '',
+    ].filter(Boolean);
+    const suffix = extra.length ? `, ${extra.join(', ')}` : '';
+    row.appendChild(el('span', `${zone.spell || zone.kind} (${zone.squares.length} squares${suffix})`));
+    const remove = el('button', 'Remove');
+    remove.type = 'button';
+    remove.addEventListener('click', () => socket.emit('zone:remove', { id: zone.id }));
+    row.appendChild(remove);
+    box.appendChild(row);
+  });
+}
+
+function drawZones() {
+  zoneLayer.destroyChildren();
+  (state.zones || []).forEach((zone) => {
+    const burning = new Set((zone.burning || []).map((square) => `${square.x},${square.y}`));
+    (zone.squares || []).forEach((cell) => {
+      const hot = burning.has(`${cell.x},${cell.y}`);
+      let fill = 'rgba(186, 196, 214, 0.42)';
+      if (zone.kind === 'grease') fill = 'rgba(90, 122, 62, 0.4)';
+      if (zone.kind === 'spirit') fill = 'rgba(232, 220, 160, 0.45)';
+      if (hot) fill = 'rgba(196, 92, 42, 0.5)';
+      zoneLayer.add(new Konva.Rect({
+        x: cell.x * GRID.size,
+        y: cell.y * GRID.size,
+        width: GRID.size,
+        height: GRID.size,
+        fill,
+        listening: false,
+      }));
+    });
+  });
+  zoneLayer.batchDraw();
 }
 
 // Newest entry first, so there is no scrolling needed to see the latest attack.
@@ -779,6 +990,7 @@ function renderPanel() {
   renderAttack();
   renderLog();
   renderDetail();
+  drawZones();
 }
 
 // ---------- Wiring ----------

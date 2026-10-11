@@ -7,6 +7,7 @@
 // Only needs rules.js for grid math. Works with multi-square tokens (w and h).
 
 const { GRID, feetBetween, insideRoom } = require('../public/rules.js');
+const { speedNow } = require('./initiative.js');
 
 const MAX_STEPS = 10; // safety net so a bug can never loop forever
 
@@ -64,6 +65,8 @@ function usableActions(creature) {
     if (a.saveAbility || a.autoHit) return false;
     if (!a.damage || a.damage.length === 0) return false;
     if (a.name.startsWith('Attack with') || a.name.startsWith('Damage:')) return false;
+    if (/^attack (at|with) advantage$/i.test(a.name || '')) return false;
+    if (a.activation && a.activation !== 'action') return false;
     return a.toHit !== undefined || a.attackAbility !== undefined;
   });
 }
@@ -131,7 +134,7 @@ function bestActionFrom(spot, target, creature, targetCreature) {
 
 // Picks a square to walk to, or null if moving would not help.
 // Cost is how far the token's corner travels, the same rule the server charges.
-function findMove(token, target, tokens, creature, targetCreature, movementLeft) {
+function findMove(token, target, tokens, creature, targetCreature, movementLeft, costOf) {
   const radius = Math.floor(movementLeft / GRID.feetPerSquare);
   if (radius < 1) return null;
 
@@ -143,11 +146,16 @@ function findMove(token, target, tokens, creature, targetCreature, movementLeft)
       if (x === token.x && y === token.y) continue;
       if (!fitsAt(tokens, token, x, y)) continue;
 
+      const steps = Math.max(Math.abs(x - token.x), Math.abs(y - token.y));
+      const feet = costOf ? costOf(token, x, y) : steps * GRID.feetPerSquare;
+      if (feet > movementLeft) continue;
+
       const spot = { x, y, w, h };
       candidates.push({
         x,
         y,
-        steps: Math.max(Math.abs(x - token.x), Math.abs(y - token.y)),
+        steps,
+        feet,
         distanceToTarget: feetBetween(spot, target),
         canAttack: bestActionFrom(spot, target, creature, targetCreature) !== null,
       });
@@ -180,25 +188,42 @@ function findMove(token, target, tokens, creature, targetCreature, movementLeft)
 //   { type: 'move', x, y, feet }
 //   { type: 'end', reason }
 // turn is the tracker's current turn state (actionUsed, attacksLeft, movementLeft).
-function nextMonsterStep({ token, tokens, catalog, turn }) {
+function nextMonsterStep({ token, tokens, catalog, turn, costOf }) {
   const creature = catalog[token.creatureId];
-
-  const canAttack = turn.attacksLeft > 0 || !turn.actionUsed;
-  if (!canAttack) return { type: 'end', reason: 'no actions left' };
-
   const target = chooseTarget(token, tokens);
   if (!target) return { type: 'end', reason: 'no targets' };
   const targetCreature = catalog[target.creatureId];
 
-  const action = bestActionFrom(token, target, creature, targetCreature);
-  if (action) {
-    return { type: 'attack', targetId: target.id, actionName: action.name };
+  const canAct = turn.attacksLeft > 0 || !turn.actionUsed;
+  if (canAct) {
+    const action = bestActionFrom(token, target, creature, targetCreature);
+    if (action) return { type: 'attack', targetId: target.id, actionName: action.name };
   }
 
-  const move = findMove(token, target, tokens, creature, targetCreature, turn.movementLeft);
-  if (move) {
-    return { type: 'move', x: move.x, y: move.y, feet: move.steps * GRID.feetPerSquare };
+  const move = findMove(token, target, tokens, creature, targetCreature, turn.movementLeft, costOf);
+  if (canAct && move && move.canAttack) {
+    return { type: 'move', x: move.x, y: move.y, feet: move.feet };
   }
+
+  // Dash only when no square the current movement can reach allows an attack,
+  // and spending the action on Dash would actually get the monster closer.
+  if (canAct && !turn.actionUsed && turn.attacksLeft === 0) {
+    const speed = speedNow(creature, token);
+    if (speed > 0) {
+      const farther = findMove(
+        token, target, tokens, creature, targetCreature, turn.movementLeft + speed, costOf
+      );
+      const improves = farther && (
+        farther.canAttack || !move || farther.distanceToTarget < move.distanceToTarget
+      );
+      if (improves) return { type: 'dash' };
+    }
+  }
+
+  if (move && (canAct || turn.dashed)) {
+    return { type: 'move', x: move.x, y: move.y, feet: move.feet };
+  }
+  if (!canAct) return { type: 'end', reason: 'no actions left' };
   return { type: 'end', reason: 'cannot reach anyone' };
 }
 
@@ -208,7 +233,7 @@ function nextMonsterStep({ token, tokens, catalog, turn }) {
 //   performMove(token, step)    and    performAttack(token, step)
 //                         must return { ok, error? } and update the board
 //   pause()               returns a promise, used to slow things down for viewers
-async function runMonsterTurn({ token, getTokens, catalog, tracker, performMove, performAttack, pause }) {
+async function runMonsterTurn({ token, getTokens, catalog, tracker, performMove, performAttack, performDash, pause, costOf }) {
   for (let i = 0; i < MAX_STEPS; i++) {
     // Stop if combat ended or the turn moved on while we were waiting.
     if (!tracker.active || !tracker.turn || tracker.turn.tokenId !== token.id) return;
@@ -217,10 +242,13 @@ async function runMonsterTurn({ token, getTokens, catalog, tracker, performMove,
     const self = tokens.find((t) => t.id === token.id);
     if (!self || self.defeated) return;
 
-    const step = nextMonsterStep({ token: self, tokens, catalog, turn: tracker.turn });
+    const step = nextMonsterStep({ token: self, tokens, catalog, turn: tracker.turn, costOf });
     if (step.type === 'end') return;
 
-    const result = step.type === 'move' ? performMove(self, step) : performAttack(self, step);
+    let result;
+    if (step.type === 'move') result = performMove(self, step);
+    else if (step.type === 'dash') result = performDash(self, step);
+    else result = performAttack(self, step);
     if (!result.ok) return;
 
     await pause();
