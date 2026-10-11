@@ -18,8 +18,18 @@
 
       <section>
         <h2>Add to map</h2>
+        <form id="import-form" class="import-form">
+          <input id="import-url" class="roster-search" type="text" placeholder="D&amp;D Beyond link or character ID" autocomplete="off">
+          <button type="submit">Add</button>
+        </form>
+        <p id="import-msg" class="import-msg" role="alert"></p>
         <input id="roster-search" class="roster-search" type="search" placeholder="Name, class, or level" autocomplete="off">
         <div id="roster" class="roster"></div>
+      </section>
+
+      <section>
+        <h2>Initiative</h2>
+        <div id="initiative"></div>
       </section>
 
       <section>

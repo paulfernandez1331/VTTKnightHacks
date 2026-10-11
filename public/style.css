@@ -77,6 +77,15 @@ h2 {
 }
 .roster-search:focus { outline: 2px solid var(--brass); outline-offset: 2px; }
 
+.import-form {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.import-form .roster-search { margin: 0; flex: 1; min-width: 0; }
+.import-msg { min-height: 0; margin: 0 0 8px; font-size: 14px; color: #e0897a; }
+.import-msg:empty { display: none; }
+
 .roster {
   display: flex;
   flex-direction: column;
@@ -85,6 +94,16 @@ h2 {
   overflow: auto;
 }
 .roster button { width: 100%; text-align: left; }
+
+.monster-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.monster-control input { margin: 0; }
 
 button {
   font: inherit;
@@ -128,8 +147,13 @@ button.danger { margin-top: 12px; border-color: var(--monster); }
 .defenses { font-size: 14px; margin: 6px 0; }
 
 .attack-actions { display: flex; flex-direction: column; gap: 6px; }
+.attack-actions select, .attack-actions input, .hp-row input { width: 7rem; }
+.hp-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
 .attack-actions button { text-align: left; }
+.attack-actions button.armed { border-color: var(--brass); color: var(--brass); }
 .attack-actions button:disabled { opacity: 0.45; cursor: not-allowed; border-color: #44505e; }
+.condition-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
+.condition-row button { margin: 0; }
 .hint { display: block; font-size: 12px; color: var(--muted); }
 .attack-msg { min-height: 20px; margin: 8px 0 0; font-size: 14px; color: #e0897a; }
 
@@ -146,3 +170,6 @@ button.danger { margin-top: 12px; border-color: var(--monster); }
   .layout { flex-direction: column; }
   .panel { width: 100%; max-height: none; border-left: 0; border-top: 1px solid #364150; }
 }
+
+.turn { margin: 0; padding: 4px 8px; font-size: 14px; border-left: 4px solid #44505e; }
+.turn.acting { border-left-color: var(--brass); background: var(--ink); font-weight: 600; }
