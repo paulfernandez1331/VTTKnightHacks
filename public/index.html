@@ -17,7 +17,6 @@
       <span class="header-divider" aria-hidden="true"></span>
       <nav class="workspace-nav" aria-label="Workspace">
         <a class="nav-link active" href="#battle">Battle</a>
-        <a class="nav-link" href="#player-profile">Player profiles</a>
       </nav>
     </div>
     <div class="workspace-actions">
@@ -76,6 +75,7 @@
           <div id="board-scaler" class="board-scaler">
             <div id="board"></div>
           </div>
+          <div id="action-wheel" class="action-wheel" aria-label="Player actions" hidden></div>
           <div id="selection-context" class="selection-context" aria-live="polite"></div>
           <div class="map-tool-rail" aria-label="Map tools">
             <button class="map-tool active" type="button" data-map-tool="select" aria-label="Select tokens" title="Select tokens">↖</button>
@@ -87,9 +87,9 @@
             <span id="zoom-level">100%</span>
             <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
           </div>
-          <p class="map-caption">Click a token to select it. Shift-click another token to measure or choose a target.</p>
         </div>
         <footer class="map-footer">
+          <p id="attack-msg" class="attack-msg" role="alert" aria-live="assertive"></p>
           <p id="distance" class="distance">Click a token, then shift-click another to measure distance.</p>
           <div class="token-legend">
             <span><i class="legend-dot player-dot"></i>Players</span>
@@ -128,27 +128,6 @@
           <button id="token-menu" class="icon-button" type="button" aria-label="Token options" title="Token options">···</button>
         </div>
         <div id="detail"></div>
-        <div class="attack-divider"></div>
-        <div class="attack-heading">
-          <h3>Attack</h3>
-          <span>Choose a move</span>
-        </div>
-        <div id="attack-actions" class="attack-actions"></div>
-        <p id="attack-msg" class="attack-msg" role="alert"></p>
-        <div class="target-state">
-          <span aria-hidden="true">⌖</span>
-          <span id="target-label">No target selected</span>
-        </div>
-        <button id="choose-target" class="choose-target" type="button">↖ <span>Choose target on map</span></button>
-      </section>
-
-      <section id="player-profile" class="panel-card player-profile-card" aria-labelledby="profile-title">
-        <div class="profile-heading">
-          <h2 id="profile-title">Player Profile</h2>
-          <span>SAMPLE DATA</span>
-        </div>
-        <div id="profile-player-tabs" class="profile-player-tabs"></div>
-        <div id="profile-content"></div>
       </section>
     </aside>
   </main>

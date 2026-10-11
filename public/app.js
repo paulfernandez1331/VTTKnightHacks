@@ -33,6 +33,9 @@ let state = { tokens: [], creatures: {}, roster: [], log: [], zones: [], tracker
 let openFeatures = new Set();
 let openFeatureToken = null;
 let selected = []; // token ids, the first is the "from" token for measuring
+let hoveredTokenId = null;
+let actionWheelCategory = null;
+let actionWheelCloseTimer = null;
 let armed = null; // { actionName } while an area spell is waiting for a square
 let swallowClick = false;
 let commandWord = 'Halt';
@@ -42,9 +45,7 @@ let tokenNodes = {}; // token id -> Konva group
 let gridLines = [];
 let gridVisible = true;
 let measureMode = false;
-let targetMode = false;
 let mapZoom = 1;
-let selectedProfileId = null;
 let logFilter = 'all';
 let panMode = false;
 let flashTimer = null;
@@ -317,7 +318,17 @@ function makeToken(token) {
       if (armed) castArmed();
       return;
     }
-    selectToken(token.id, e.evt.shiftKey || measureMode || targetMode);
+    selectToken(token.id, e.evt.shiftKey || measureMode);
+  });
+  group.on('mouseenter', () => {
+    if (token.team !== 'player') return;
+    if (actionWheelCloseTimer) clearTimeout(actionWheelCloseTimer);
+    hoveredTokenId = token.id;
+    renderActionWheel();
+  });
+  group.on('mouseleave', () => {
+    if (token.id === state.tracker.currentTokenId && state.tracker.active) return;
+    scheduleActionWheelClose();
   });
   group.on('dragmove', updateMeasure);
   group.on('dragend', () => {
@@ -357,7 +368,6 @@ function selectToken(id, additive) {
   } else {
     selected = [id];
   }
-  if (selected.length === 2) targetMode = false;
   renderTokens();
   renderPanel();
   revealSelectionPanel();
@@ -796,7 +806,7 @@ function drawMask() {
 function disarm() {
   armed = null;
   updateMeasure();
-  renderAttack();
+  renderActionWheel();
 }
 
 function arm(actionName) {
@@ -805,8 +815,8 @@ function arm(actionName) {
     return;
   }
   armed = { actionName };
-  renderAttack();
   updateMeasure();
+  renderActionWheel();
 }
 
 function castArmed() {
@@ -930,34 +940,18 @@ function addActionButton(box, attacker, target, feet, action) {
   box.appendChild(button);
 }
 
-// Shows one button per action the attacker has. An area spell is aimed at a square.
-// Anything else still needs a shift-clicked creature.
-function renderAttack() {
-  const box = document.getElementById('attack-actions');
-  box.replaceChildren();
-  document.getElementById('attack-msg').textContent = '';
+const ACTION_GROUPS = [
+  ['Action', (action) => (action.activation || 'action') === 'action'],
+  ['Bonus', (action) => action.activation === 'bonus'],
+  ['Reaction', (action) => action.activation === 'reaction'],
+  ['Special', (action) => action.activation === 'special'],
+];
 
-  const attacker = tokenById(selected[0]);
-  const target = tokenById(selected[1]);
-
-  if (!attacker) {
-    box.appendChild(el('p', 'Select an attacker, then shift-click a target.', 'detail-sub'));
-    return;
-  }
-
-  const creature = state.creatures[attacker.creatureId];
-  const actions = (creature && creature.actions) || [];
-  const allowed = state.isDM || attacker.team === 'player';
-
-  if (!allowed) {
-    box.appendChild(el('p', 'Pick one of your own characters as the attacker.', 'detail-sub'));
-    return;
-  }
-
-  const feet = target ? feetBetween(attacker, target) : null;
+function renderActionControls(box, attacker, actions) {
   const choiceAction = actions.find((action) => action.damageChoice && action.damageChoice.length);
   if (choiceAction) {
     const picker = document.createElement('select');
+    picker.setAttribute('aria-label', 'Damage type');
     choiceAction.damageChoice.forEach((word) => {
       const option = document.createElement('option');
       option.value = word;
@@ -972,6 +966,7 @@ function renderAttack() {
   }
   if (actions.some((action) => action.command)) {
     const picker = document.createElement('select');
+    picker.setAttribute('aria-label', 'Command');
     ['Approach', 'Drop', 'Flee', 'Grovel', 'Halt'].forEach((word) => {
       const option = document.createElement('option');
       option.value = word;
@@ -989,38 +984,137 @@ function renderAttack() {
     amount.type = 'number';
     amount.min = '1';
     amount.value = String(layAmount);
+    amount.setAttribute('aria-label', 'Lay on Hands healing amount');
     amount.addEventListener('change', () => {
       layAmount = Math.max(1, Math.floor(Number(amount.value) || 1));
     });
     box.appendChild(amount);
   }
+}
 
-  const held = (attacker.marks || []).some((mark) => mark.name === 'restrained' && mark.zoneId != null);
-  if (held) {
-    const button = el('button', 'Break free');
-    const reason = blockedReason(attacker, { name: 'Break free', activation: 'action', kind: 'feature', profile: 'log' }, null, 0);
-    if (reason) {
-      button.appendChild(el('span', reason, 'hint'));
-      button.disabled = true;
+function scheduleActionWheelClose() {
+  if (actionWheelCloseTimer) clearTimeout(actionWheelCloseTimer);
+  actionWheelCloseTimer = setTimeout(() => {
+    actionWheelCloseTimer = null;
+    const actingId = state.tracker.active && state.tracker.currentTokenId;
+    hoveredTokenId = null;
+    actionWheelCategory = null;
+    if (actingId && state.tokens.some((token) => token.id === actingId && token.team === 'player')) {
+      renderActionWheel();
+    } else {
+      const wheel = document.getElementById('action-wheel');
+      wheel.hidden = true;
+      wheel.replaceChildren();
     }
-    button.addEventListener('click', () => {
-      socket.emit('attack:declare', { attackerId: attacker.id, actionName: 'Break free' });
-    });
-    box.appendChild(button);
+  }, 180);
+}
+
+function keepActionWheelOpen() {
+  if (actionWheelCloseTimer) clearTimeout(actionWheelCloseTimer);
+  actionWheelCloseTimer = null;
+}
+
+function renderActionWheel() {
+  const wheel = document.getElementById('action-wheel');
+  wheel.replaceChildren();
+  const actingId = state.tracker.active && state.tracker.currentTokenId;
+  const tokenId = state.tracker.active && state.tokens.some((token) => token.id === actingId && token.team === 'player')
+    ? actingId
+    : hoveredTokenId;
+  const attacker = tokenById(tokenId);
+  if (!attacker || attacker.team !== 'player' || armed) {
+    wheel.hidden = true;
+    return;
   }
 
-  const groups = [
-    ['Action', (action) => (action.activation || 'action') === 'action'],
-    ['Bonus', (action) => action.activation === 'bonus'],
-    ['Reaction', (action) => action.activation === 'reaction'],
-    ['Special', (action) => action.activation === 'special'],
-  ];
-  groups.forEach(([label, pred]) => {
-    const list = actions.filter(pred);
-    if (list.length === 0) return;
-    box.appendChild(el('p', label, 'detail-sub'));
-    list.forEach((action) => addActionButton(box, attacker, target, feet, action));
+  const node = tokenNodes[attacker.id];
+  const canvas = document.getElementById('board');
+  const viewport = document.getElementById('map-viewport');
+  if (!node || !canvas || !viewport) {
+    wheel.hidden = true;
+    return;
+  }
+
+  const absolute = node.getAbsolutePosition();
+  const canvasRect = canvas.getBoundingClientRect();
+  const viewportRect = viewport.getBoundingClientRect();
+  const scaleX = canvasRect.width / stage.width();
+  const scaleY = canvasRect.height / stage.height();
+  const { w, h } = tokenSpan(attacker);
+  const centerX = canvasRect.left - viewportRect.left + (absolute.x + (w * GRID.size) / 2) * scaleX;
+  const centerY = canvasRect.top - viewportRect.top + (absolute.y + (h * GRID.size) / 2) * scaleY;
+  const boundedX = Math.min(Math.max(centerX, 124), Math.max(124, viewport.clientWidth - 124));
+  const boundedY = Math.min(Math.max(centerY, 76), Math.max(76, viewport.clientHeight - 77));
+  wheel.style.left = `${boundedX}px`;
+  wheel.style.top = `${boundedY}px`;
+  wheel.hidden = false;
+
+  const creature = state.creatures[attacker.creatureId];
+  const actions = (creature && creature.actions) || [];
+  const selectedTarget = selected[0] === attacker.id ? tokenById(selected[1]) : null;
+  const feet = selectedTarget ? feetBetween(attacker, selectedTarget) : null;
+  const menu = el('div', undefined, 'action-wheel-menu');
+  menu.addEventListener('mouseenter', keepActionWheelOpen);
+  menu.addEventListener('mouseleave', (event) => {
+    if (!wheel.contains(event.relatedTarget)) scheduleActionWheelClose();
   });
+
+  ACTION_GROUPS.forEach(([label, predicate], index) => {
+    const groupActions = actions
+      .filter(predicate)
+      .map((action, order) => ({ action, order, reason: blockedReason(attacker, action, selectedTarget, feet) }))
+      .sort((a, b) => {
+        const aReady = !a.reason;
+        const bReady = !b.reason;
+        return Number(!aReady) - Number(!bReady) || a.order - b.order;
+      });
+    if (!groupActions.length) return;
+
+    const available = groupActions.filter((entry) => !entry.reason).length;
+    const categoryUnavailable = groupActions.every(({ reason }) => {
+      if (!reason) return false;
+      if (reason === 'shift-click a target' || reason.startsWith('out of range') || reason.startsWith('only a ')) return false;
+      if (reason === 'a defeated token is involved' && selectedTarget && selectedTarget.defeated) return false;
+      return true;
+    });
+    const button = el('button', undefined, `action-wheel-category direction-${index}`);
+    button.type = 'button';
+    button.textContent = label;
+    button.disabled = categoryUnavailable;
+    button.setAttribute('aria-expanded', actionWheelCategory === label ? 'true' : 'false');
+    button.setAttribute('aria-label', `${label}, ${available} available moves${categoryUnavailable ? ', unavailable this turn' : ''}`);
+    button.appendChild(el('span', String(available), 'action-wheel-count'));
+    button.addEventListener('mouseenter', keepActionWheelOpen);
+    button.addEventListener('mouseleave', (event) => {
+      if (!wheel.contains(event.relatedTarget)) scheduleActionWheelClose();
+    });
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      actionWheelCategory = actionWheelCategory === label ? null : label;
+      renderActionWheel();
+    });
+    wheel.appendChild(button);
+
+    if (actionWheelCategory === label) {
+      menu.appendChild(el('h3', label, 'action-wheel-title'));
+      renderActionControls(menu, attacker, groupActions.map((entry) => entry.action));
+      groupActions.forEach(({ action }) => {
+        const actionButton = document.createElement('div');
+        actionButton.className = 'action-wheel-move';
+        addActionButton(actionButton, attacker, selectedTarget, feet, action);
+        const moveButton = actionButton.querySelector('button');
+        moveButton.classList.add('action-wheel-move-button');
+        menu.appendChild(moveButton);
+      });
+    }
+  });
+
+  if (actionWheelCategory && menu.childElementCount) wheel.appendChild(menu);
+  const menuRect = menu.getBoundingClientRect();
+  const viewportWidth = viewport.clientWidth;
+  const viewportHeight = viewport.clientHeight;
+  menu.classList.toggle('flip-left', boundedX + 230 > viewportWidth);
+  menu.classList.toggle('flip-up', boundedY + menuRect.height > viewportHeight);
 }
 
 // Turn order, what the acting token has left, and the buttons to run combat.
@@ -1194,72 +1288,6 @@ function renderLog() {
   });
 }
 
-function renderPlayerProfile() {
-  const players = state.tokens.filter((token) => token.team === 'player');
-  const tabs = document.getElementById('profile-player-tabs');
-  const content = document.getElementById('profile-content');
-  tabs.replaceChildren();
-  content.replaceChildren();
-
-  if (!players.some((token) => token.id === selectedProfileId)) {
-    selectedProfileId = players.length ? players[0].id : null;
-  }
-
-  players.forEach((token, index) => {
-    const button = el('button', token.name || `Player ${index + 1}`);
-    button.type = 'button';
-    button.className = token.id === selectedProfileId ? 'active' : '';
-    button.setAttribute('aria-pressed', token.id === selectedProfileId ? 'true' : 'false');
-    button.addEventListener('click', () => {
-      selectedProfileId = token.id;
-      renderPlayerProfile();
-    });
-    tabs.appendChild(button);
-  });
-
-  const token = players.find((entry) => entry.id === selectedProfileId);
-  if (!token) {
-    tabs.hidden = true;
-    content.appendChild(el('p', 'Add a player token to view a profile.', 'detail-sub'));
-    return;
-  }
-
-  tabs.hidden = false;
-  const creature = state.creatures[token.creatureId] || {};
-  const info = el('div', undefined, 'profile-information');
-  info.appendChild(el('span', `${creature.size || 'Character'} · ${creature.class || 'Player'}`));
-  const fullProfile = el('a', 'Full profile ↗');
-  fullProfile.href = '#player-profile';
-  info.appendChild(fullProfile);
-  content.appendChild(info);
-
-  const hpLabel = el('div', undefined, 'profile-health-label');
-  hpLabel.appendChild(el('span', 'Hit points'));
-  hpLabel.appendChild(el('strong', token.hp === null ? 'Not supplied' : `${token.hp} / ${token.maxHp}`));
-  content.appendChild(hpLabel);
-
-  const track = el('div', undefined, 'health-track profile-health-track');
-  if (token.hp !== null && token.maxHp) {
-    const fill = el('span', undefined, 'health-fill');
-    fill.style.width = `${Math.max(0, Math.min(100, (token.hp / token.maxHp) * 100))}%`;
-    track.appendChild(fill);
-  }
-  content.appendChild(track);
-
-  const stats = el('div', undefined, 'profile-stats');
-  [
-    ['Armor class', creature.ac === undefined ? '—' : creature.ac],
-    ['Speed', creature.speed === undefined ? '—' : `${creature.speed} ft`],
-    ['Proficiency', creature.proficiency === undefined ? '—' : `+${creature.proficiency}`],
-  ].forEach(([label, value]) => {
-    const stat = el('div', undefined, 'profile-stat');
-    stat.appendChild(el('strong', String(value)));
-    stat.appendChild(el('span', label));
-    stats.appendChild(stat);
-  });
-  content.appendChild(stats);
-}
-
 function renderPanel() {
   document.getElementById('role').textContent = state.isDM ? 'Dungeon Master view' : 'Player view';
   const endTurn = document.getElementById('end-turn');
@@ -1280,20 +1308,14 @@ function renderPanel() {
   const target = tokenById(selected[1]);
   document.getElementById('selected-title').textContent = attacker ? attacker.name : 'Select a token';
   document.getElementById('selection-context').textContent =
-    attacker ? `${attacker.name}  ·  Selected` : '';
-  document.getElementById('target-label').textContent =
-    target ? `Target: ${target.name}` : (targetMode ? 'Choose a target on the map' : 'No target selected');
-  document.getElementById('choose-target').classList.toggle('is-active', targetMode);
-  document.getElementById('choose-target').querySelector('span').textContent =
-    targetMode ? 'Click a target on the map' : 'Choose target on map';
+    attacker ? `${attacker.name} · Selected${target ? ` · Target: ${target.name}` : ''}` : '';
   renderRoster();
-  renderAttack();
   renderLog();
   renderDetail();
-  renderPlayerProfile();
   renderInitiative();
   renderTurnOrder();
   drawZones();
+  renderActionWheel();
 }
 
 // ---------- Wiring ----------
@@ -1408,6 +1430,7 @@ function fitBoard() {
   ) * mapZoom;
   boardScaler.style.transform = `translate(-50%, -50%) scale(${scale})`;
   document.getElementById('zoom-level').textContent = `${Math.round(mapZoom * 100)}%`;
+  renderActionWheel();
 }
 
 document.getElementById('grid-toggle').addEventListener('click', (event) => {
@@ -1460,25 +1483,12 @@ document.querySelectorAll('[data-map-tool]').forEach((button) => {
     if (tool === 'measure') setMeasureMode(!measureMode);
     if (tool === 'select') {
       setMeasureMode(false);
-      targetMode = false;
-      renderPanel();
     }
     if (tool === 'pan') {
       setMeasureMode(false);
-      targetMode = false;
-      renderPanel();
     }
     renderTokens();
   });
-});
-
-document.getElementById('choose-target').addEventListener('click', () => {
-  if (selected.length === 0) {
-    document.getElementById('attack-msg').textContent = 'Select an attacker first.';
-    return;
-  }
-  targetMode = !targetMode;
-  renderPanel();
 });
 
 document.getElementById('clear-search').addEventListener('click', () => {
