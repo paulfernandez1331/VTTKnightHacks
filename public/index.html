@@ -9,7 +9,7 @@
 <body>
   <header class="workspace-header">
     <div class="workspace-identity">
-      <div class="tabletop-emblem" aria-hidden="true">⚄</div>
+      <img class="tabletop-emblem" src="/assets/battlemat-logo.svg" alt="BattleMat logo">
       <div class="workspace-title">
         <h1>BattleMat</h1>
         <p id="role" class="role"></p>
@@ -47,7 +47,7 @@
     </div>
   </header>
 
-  <section class="turn-order-bar" aria-label="Combat turn order" aria-live="polite">
+  <section class="turn-order-bar" aria-label="Combat turn order" aria-live="polite" hidden>
     <div class="current-turn-summary">
       <span class="current-turn-eyebrow">Current turn</span>
       <strong id="current-turn-name">Combat not started</strong>
@@ -57,7 +57,7 @@
   </section>
 
   <main class="layout" id="battle">
-    <section class="board-column" aria-label="Battle map and combat log">
+    <section class="board-column" aria-label="Battle map">
       <section class="map-card">
         <div class="map-toolbar">
           <div class="map-heading">
@@ -98,21 +98,6 @@
         </footer>
       </section>
 
-      <section class="combat-log-card" aria-labelledby="combat-log-title">
-        <div class="combat-log-header">
-          <div class="log-title-group">
-            <span class="log-icon" aria-hidden="true">▤</span>
-            <h2 id="combat-log-title">Combat log</h2>
-            <span id="log-count" class="log-count">0 new entries</span>
-          </div>
-          <div class="log-filters" role="group" aria-label="Combat log filter">
-            <button class="log-filter active" type="button" data-log-filter="all">All activity</button>
-            <button class="log-filter" type="button" data-log-filter="attacks">Attacks</button>
-            <button class="log-filter" type="button" data-log-filter="damage">Damage</button>
-          </div>
-        </div>
-        <div id="log" class="log"></div>
-      </section>
     </section>
 
     <aside class="panel" aria-label="Battle controls">
@@ -128,6 +113,21 @@
           <button id="token-menu" class="icon-button" type="button" aria-label="Token options" title="Token options">···</button>
         </div>
         <div id="detail"></div>
+      </section>
+      <section class="combat-log-card" aria-labelledby="combat-log-title">
+        <div class="combat-log-header">
+          <div class="log-title-group">
+            <span class="log-icon" aria-hidden="true">▤</span>
+            <h2 id="combat-log-title">Combat log</h2>
+            <span id="log-count" class="log-count">0 new entries</span>
+          </div>
+          <div class="log-filters" role="group" aria-label="Combat log filter">
+            <button class="log-filter active" type="button" data-log-filter="all">All</button>
+            <button class="log-filter" type="button" data-log-filter="attacks">Attacks</button>
+            <button class="log-filter" type="button" data-log-filter="damage">Damage</button>
+          </div>
+        </div>
+        <div id="log" class="log"></div>
       </section>
     </aside>
   </main>

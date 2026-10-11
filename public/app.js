@@ -1184,9 +1184,12 @@ function renderInitiative() {
 
 function renderTurnOrder() {
   const tracker = state.tracker;
+  const turnOrderBar = document.querySelector('.turn-order-bar');
   const currentTurnName = document.getElementById('current-turn-name');
   const currentRound = document.getElementById('current-round');
   const orderList = document.getElementById('turn-order-list');
+  turnOrderBar.hidden = !tracker.active;
+  document.body.classList.toggle('combat-active', tracker.active);
   orderList.replaceChildren();
 
   if (!tracker.active) {
