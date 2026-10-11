@@ -874,6 +874,35 @@ def extract_sheet_actions(character, abilities, level, proficiency):
     return actions
 
 
+def merge_weapon_sheet_actions(weapon_actions, sheet_actions):
+    """Fill incomplete inventory weapons from matching sheet attack actions."""
+    actions = list(weapon_actions)
+    weapons_by_name = {
+        action["name"].strip().casefold(): action
+        for action in actions
+        if action.get("name")
+    }
+
+    for sheet_action in sheet_actions:
+        name_key = sheet_action.get("name", "").strip().casefold()
+        weapon_action = weapons_by_name.get(name_key)
+        if (
+            not weapon_action
+            or weapon_action.get("damage")
+            or not sheet_action.get("damage")
+            or sheet_action.get("kind") == "spell"
+        ):
+            actions.append(sheet_action)
+            continue
+
+        weapon_action["damage"] = sheet_action["damage"]
+        for key in ("toHit", "range", "reach", "activation"):
+            if key in sheet_action:
+                weapon_action[key] = sheet_action[key]
+
+    return actions
+
+
 # --------------------------------------------------
 # Main conversion
 # --------------------------------------------------
@@ -941,7 +970,10 @@ def convert_character(ddb_json):
         "conditionImmune": [],
         "token": character.get("decorations", {}).get("avatarUrl"),
         "img": character.get("decorations", {}).get("avatarUrl"),
-        "actions": extract_weapon_actions(character) + spell_actions + sheet_actions,
+        "actions": merge_weapon_sheet_actions(
+            extract_weapon_actions(character),
+            sheet_actions,
+        ) + spell_actions,
         "class": class_text,
         "race": race_name,
         "features": extract_features(character, total_level),

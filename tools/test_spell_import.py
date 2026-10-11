@@ -182,6 +182,40 @@ def main():
     actions = {action["name"]: action for action in converted["actions"]}
     feature_names = {feature["name"] for feature in converted["features"]}
 
+    weapon_payload = payload()
+    weapon_character = weapon_payload["data"]
+    weapon_character["inventory"] = [{
+        "definition": {
+            "filterType": "Weapon",
+            "name": "Longsword",
+            "attackType": 1,
+            "damage": None,
+        },
+    }]
+    weapon_character["actions"]["class"].append({
+        "name": "Longsword",
+        "dice": {"diceString": "1d8+3"},
+        "damageTypeId": 3,
+        "saveStatId": None,
+        "fixedToHit": 6,
+        "fixedSaveDc": None,
+        "attackTypeRange": 1,
+        "abilityModifierStatId": 1,
+        "description": "",
+        "range": {"range": 5, "longRange": None, "aoeType": None, "aoeSize": None},
+        "activation": {"activationType": 1},
+    })
+    weapon_actions = [
+        action
+        for action in convert_character(weapon_payload)["actions"]
+        if action["name"] == "Longsword"
+    ]
+    assert len(weapon_actions) == 1, weapon_actions
+    assert weapon_actions[0]["damage"] == [
+        {"dice": "1d8+3", "type": "slashing"},
+    ], weapon_actions[0]
+    assert weapon_actions[0]["toHit"] == 6, weapon_actions[0]
+
     bolt = actions["Fire Bolt"]
     assert bolt["kind"] == "spell", bolt
     assert bolt["attackAbility"] == "int", bolt

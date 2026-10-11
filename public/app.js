@@ -37,6 +37,7 @@ let hoveredTokenId = null;
 let actionWheelCategory = null;
 let actionWheelCloseTimer = null;
 let armed = null; // { actionName } while an area spell is waiting for a square
+let pendingTargetAction = null;
 let swallowClick = false;
 let commandWord = 'Halt';
 let spiritType = 'Radiant';
@@ -136,7 +137,7 @@ stage.on('click tap', () => {
 });
 
 stage.on('click tap', (e) => {
-  if (armed || swallowClick) return;
+  if (armed || swallowClick || pendingTargetAction) return;
   if (e.target.getLayer() !== tokenLayer) {
     selected = [];
     renderTokens();
@@ -313,6 +314,11 @@ function makeToken(token) {
   group.name('battle-token');
   group.setAttr('tokenId', token.id);
   group.on('click tap', (e) => {
+    if (pendingTargetAction) {
+      e.cancelBubble = true;
+      resolvePendingActionTarget(token.id);
+      return;
+    }
     if (armed || swallowClick) {
       e.cancelBubble = true;
       if (armed) castArmed();
@@ -724,8 +730,9 @@ function armedAction() {
 function pointerSquare() {
   const pos = stage.getPointerPosition();
   if (!pos) return null;
-  const x = Math.floor(pos.x / GRID.size);
-  const y = Math.floor(pos.y / GRID.size);
+  const local = stage.getAbsoluteTransform().copy().invert().point(pos);
+  const x = Math.floor(local.x / GRID.size);
+  const y = Math.floor(local.y / GRID.size);
   if (!insideRoom(x, y)) return null;
   return { x, y, w: 1, h: 1 };
 }
@@ -891,7 +898,7 @@ function blockedReason(attacker, action, target, feet) {
       } else if (t.actionUsed && !extra) return 'no actions left this turn';
     }
   }
-  if (needsCreature(action) && !target) return 'shift-click a target';
+  if (needsCreature(action) && !target) return 'choose a target';
   if (needsCreature(action) && action.targets && action.targets.length && !action.targets.includes(creatureKind(target))) {
     return `only a ${typeListText(action.targets)}`;
   }
@@ -911,12 +918,25 @@ function addActionButton(box, attacker, target, feet, action) {
   if (bag) notes.push(`${bag.left}/${bag.max} left`);
 
   const reason = blockedReason(attacker, action, target, feet);
-  const hint = [reason, notes.join(', ')].filter(Boolean).join(' · ');
+  const hint = [reason === 'choose a target' ? 'Click to choose a target' : reason, notes.join(', ')].filter(Boolean).join(' · ');
   if (hint) button.appendChild(el('span', hint, 'hint'));
-  if (reason) button.disabled = true;
+  if (reason && reason !== 'choose a target') button.disabled = true;
   if (armed && armed.actionName === action.name && action.area) button.classList.add('armed');
 
   button.addEventListener('click', () => {
+    if (selected[0] !== attacker.id) {
+      selected = [attacker.id];
+      renderTokens();
+      renderPanel();
+    }
+    if (needsCreature(action) && !target) {
+      pendingTargetAction = { attackerId: attacker.id, actionName: action.name };
+      selected = [attacker.id];
+      document.getElementById('attack-msg').textContent = '';
+      renderTokens();
+      renderPanel();
+      return;
+    }
     if (action.zone === 'spirit') {
       socket.emit('attack:declare', {
         attackerId: attacker.id,
@@ -938,6 +958,48 @@ function addActionButton(box, attacker, target, feet, action) {
     });
   });
   box.appendChild(button);
+}
+
+function resolvePendingActionTarget(targetId) {
+  const pending = pendingTargetAction;
+  if (!pending) return;
+
+  const attacker = tokenById(pending.attackerId);
+  const target = tokenById(targetId);
+  const creature = attacker && state.creatures[attacker.creatureId];
+  const action = creature && (creature.actions || []).find((entry) => entry.name === pending.actionName);
+  if (!attacker || !target || !action) {
+    pendingTargetAction = null;
+    renderPanel();
+    return;
+  }
+  if (target.id === attacker.id) {
+    pendingTargetAction = null;
+    selected = [attacker.id];
+    renderTokens();
+    renderPanel();
+    return;
+  }
+
+  selected = [attacker.id, target.id];
+  const feet = feetBetween(attacker, target);
+  const reason = blockedReason(attacker, action, target, feet);
+  const targetIssue = reason === 'a defeated token is involved'
+    || reason.startsWith('only a ')
+    || reason.startsWith('out of range');
+  document.getElementById('attack-msg').textContent = reason;
+  if (reason && !targetIssue) pendingTargetAction = null;
+  else if (!reason) pendingTargetAction = null;
+
+  renderTokens();
+  renderPanel();
+  if (!reason) {
+    socket.emit('attack:declare', {
+      attackerId: attacker.id,
+      targetId: target.id,
+      actionName: action.name,
+    });
+  }
 }
 
 const ACTION_GROUPS = [
@@ -1043,10 +1105,11 @@ function renderActionWheel() {
   const { w, h } = tokenSpan(attacker);
   const centerX = canvasRect.left - viewportRect.left + (absolute.x + (w * GRID.size) / 2) * scaleX;
   const centerY = canvasRect.top - viewportRect.top + (absolute.y + (h * GRID.size) / 2) * scaleY;
-  const boundedX = Math.min(Math.max(centerX, 124), Math.max(124, viewport.clientWidth - 124));
-  const boundedY = Math.min(Math.max(centerY, 76), Math.max(76, viewport.clientHeight - 77));
-  wheel.style.left = `${boundedX}px`;
-  wheel.style.top = `${boundedY}px`;
+  const boundedX = Math.min(Math.max(centerX, 144), Math.max(144, viewport.clientWidth - 144));
+  const boundedY = Math.min(Math.max(centerY, 92), Math.max(92, viewport.clientHeight - 92));
+  wheel.style.width = `${viewport.clientWidth}px`;
+  wheel.style.height = `${viewport.clientHeight}px`;
+  wheel.style.pointerEvents = 'none';
   wheel.hidden = false;
 
   const creature = state.creatures[attacker.creatureId];
@@ -1054,6 +1117,8 @@ function renderActionWheel() {
   const selectedTarget = selected[0] === attacker.id ? tokenById(selected[1]) : null;
   const feet = selectedTarget ? feetBetween(attacker, selectedTarget) : null;
   const menu = el('div', undefined, 'action-wheel-menu');
+  menu.style.left = `${boundedX + 72}px`;
+  menu.style.top = `${boundedY - 42}px`;
   menu.addEventListener('mouseenter', keepActionWheelOpen);
   menu.addEventListener('mouseleave', (event) => {
     if (!wheel.contains(event.relatedTarget)) scheduleActionWheelClose();
@@ -1073,16 +1138,25 @@ function renderActionWheel() {
     const available = groupActions.filter((entry) => !entry.reason).length;
     const categoryUnavailable = groupActions.every(({ reason }) => {
       if (!reason) return false;
-      if (reason === 'shift-click a target' || reason.startsWith('out of range') || reason.startsWith('only a ')) return false;
+      if (reason === 'choose a target' || reason.startsWith('out of range') || reason.startsWith('only a ')) return false;
       if (reason === 'a defeated token is involved' && selectedTarget && selectedTarget.defeated) return false;
       return true;
     });
     const button = el('button', undefined, `action-wheel-category direction-${index}`);
     button.type = 'button';
+    const categoryPositions = [
+      [boundedX - 44, boundedY - 90],
+      [boundedX + 56, boundedY - 18],
+      [boundedX - 44, boundedY + 54],
+      [boundedX - 144, boundedY - 18],
+    ];
+    button.style.left = `${categoryPositions[index][0]}px`;
+    button.style.top = `${categoryPositions[index][1]}px`;
     button.textContent = label;
-    button.disabled = categoryUnavailable;
+    if (categoryUnavailable) button.classList.add('unavailable');
     button.setAttribute('aria-expanded', actionWheelCategory === label ? 'true' : 'false');
-    button.setAttribute('aria-label', `${label}, ${available} available moves${categoryUnavailable ? ', unavailable this turn' : ''}`);
+    button.setAttribute('aria-label', `${label}, ${available} available moves${categoryUnavailable ? ', unavailable this turn; click to view moves' : ''}`);
+    if (categoryUnavailable) button.title = 'No moves available this turn. Click to view them.';
     button.appendChild(el('span', String(available), 'action-wheel-count'));
     button.addEventListener('mouseenter', keepActionWheelOpen);
     button.addEventListener('mouseleave', (event) => {
@@ -1113,8 +1187,12 @@ function renderActionWheel() {
   const menuRect = menu.getBoundingClientRect();
   const viewportWidth = viewport.clientWidth;
   const viewportHeight = viewport.clientHeight;
-  menu.classList.toggle('flip-left', boundedX + 230 > viewportWidth);
-  menu.classList.toggle('flip-up', boundedY + menuRect.height > viewportHeight);
+  const flipLeft = boundedX + 72 + menuRect.width > viewportWidth;
+  const flipUp = boundedY - 42 + menuRect.height > viewportHeight;
+  menu.classList.toggle('flip-left', flipLeft);
+  menu.classList.toggle('flip-up', flipUp);
+  if (flipLeft) menu.style.left = `${Math.max(0, boundedX - 72 - menuRect.width)}px`;
+  if (flipUp) menu.style.top = `${Math.max(0, boundedY - 42 - menuRect.height)}px`;
 }
 
 // Turn order, what the acting token has left, and the buttons to run combat.
@@ -1311,7 +1389,9 @@ function renderPanel() {
   const target = tokenById(selected[1]);
   document.getElementById('selected-title').textContent = attacker ? attacker.name : 'Select a token';
   document.getElementById('selection-context').textContent =
-    attacker ? `${attacker.name} · Selected${target ? ` · Target: ${target.name}` : ''}` : '';
+    attacker
+      ? `${attacker.name} · Selected${target ? ` · Target: ${target.name}` : ''}${pendingTargetAction && pendingTargetAction.attackerId === attacker.id ? ` · Click a target for ${pendingTargetAction.actionName}` : ''}`
+      : '';
   renderRoster();
   renderLog();
   renderDetail();
@@ -1334,6 +1414,10 @@ socket.on('state', (newState) => {
   // Drop any selected tokens that no longer exist.
   selected = selected.filter((id) => state.tokens.some((t) => t.id === id));
   if (armed && !armedAction()) armed = null;
+  if (pendingTargetAction && (
+    !state.tokens.some((token) => token.id === pendingTargetAction.attackerId)
+    || (state.tracker.active && state.tracker.currentTokenId !== pendingTargetAction.attackerId)
+  )) pendingTargetAction = null;
   renderTokens();
   renderPanel();
   if (turnChanged) revealSelectionPanel();
