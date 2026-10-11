@@ -7,9 +7,14 @@ const { spawn } = require('child_process');
 const { Server } = require('socket.io');
 const { GRID, insideRoom } = require('./public/rules.js');
 const { resolveAttack } = require('./combat/attack.js');
+const init = require('./combat/initiative.js');
+const { runMonsterTurn } = require('./combat/monsterTurn.js');
 
 const PORT = process.env.PORT || 3000;
 const DM_CODE = process.env.DM_CODE || 'dm';
+
+// Set AUTO_MONSTERS=false to run monster turns by hand as the DM instead.
+const AUTO_MONSTERS = process.env.AUTO_MONSTERS !== 'false';
 
 const monsters = require('./data/monsters.json');
 const characters = require('./data/characters.json');
@@ -57,7 +62,7 @@ app.use('/vendor/konva', express.static(path.join(__dirname, 'node_modules/konva
 app.use('/tokens', express.static(path.join(__dirname, '../dnd5e/tokens')));
 
 // The one source of truth. Clients only ever send intents.
-const board = { tokens: [], nextId: 1, log: [], nextLogId: 1 };
+const board = { tokens: [], nextId: 1, log: [], nextLogId: 1, tracker: init.createTracker() };
 const MAX_LOG_ENTRIES = 100;
 
 // Build the view a given role is allowed to see.
@@ -88,7 +93,7 @@ function buildState(isDM) {
     lines: isDM ? entry.dm : [entry.pub],
   }));
 
-  return { tokens, creatures, roster, log, isDM };
+  return { tokens, creatures, roster, log, tracker: init.publicView(board.tracker), isDM };
 }
 
 function broadcast() {
@@ -162,6 +167,7 @@ function placeCreature(creature) {
     conditions: [],
   };
   board.tokens.push(token);
+  init.addToCombat(board.tracker, token, catalog);
   return token;
 }
 
@@ -206,6 +212,126 @@ function readConverted(filePath) {
   const creature = list.find((entry) => entry && entry.id);
   if (!creature) throw new Error('The converter did not return a character.');
   return creature;
+}
+
+function addLog(outcome, dmLines, pub) {
+  board.log.push({ id: board.nextLogId++, outcome, dm: dmLines, pub });
+  if (board.log.length > MAX_LOG_ENTRIES) board.log.shift();
+}
+
+// Players and monsters both move through here, so the rules are never duplicated.
+// free = true skips the movement budget (used for the DM dragging tokens around).
+function performMove(token, x, y, free) {
+  const { w, h } = footprintOf(token);
+  if (!fits(x, y, w, h, token.id)) {
+    return { ok: false, error: 'That spot is blocked.' };
+  }
+
+  if (!free) {
+    // Cost is how far the token's corner travels, with 5e diagonals.
+    const steps = Math.max(Math.abs(x - token.x), Math.abs(y - token.y));
+    const spent = init.spendMovement(board.tracker, token.id, steps * GRID.feetPerSquare);
+    if (!spent.ok) return spent;
+  }
+
+  token.x = x;
+  token.y = y;
+  broadcast();
+  return { ok: true };
+}
+
+// Players and monsters both attack through here too.
+// square is the aim of an area. A weapon attack leaves it empty.
+function performAttack(attacker, target, actionName, square) {
+  const creature = catalog[attacker.creatureId];
+
+  // Is it this token's turn, and does it still have an action or attack left?
+  const turnCheck = init.checkAttack(board.tracker, attacker.id);
+  if (!turnCheck.ok) return turnCheck;
+
+  const result = resolveAttack({
+    attacker,
+    target,
+    actionName,
+    tokens: board.tokens,
+    catalog,
+    square,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  // Only spend the action once the attack really happened, so a rules error
+  // like "out of range" never costs anyone their turn.
+  init.spendAttack(board.tracker, attacker.id, creature);
+
+  (result.targets || []).forEach((entry) => {
+    const token = board.tokens.find((t) => t.id === entry.id);
+    if (!token) return;
+    token.hp = entry.hpAfter;
+    token.defeated = entry.defeated;
+    if (!Array.isArray(token.conditions)) token.conditions = [];
+    const immune = (catalog[token.creatureId] && catalog[token.creatureId].conditionImmune) || [];
+    (entry.conditions || []).forEach((name) => {
+      if (immune.includes(name) || token.conditions.includes(name)) return;
+      token.conditions.push(name);
+    });
+  });
+
+  addLog(result.outcome, result.dm, result.pub);
+  broadcast();
+  checkForVictory();
+  return { ok: true };
+}
+
+function checkForVictory() {
+  if (!board.tracker.active) return;
+
+  const winner = init.checkVictory(board.tokens);
+  if (!winner) return;
+
+  const text = winner === 'players' ? 'The party wins! Combat is over.' : 'The monsters win. Combat is over.';
+  addLog('hit', [text], text);
+  init.endCombat(board.tracker);
+  broadcast();
+}
+
+let monsterTurnRunning = false;
+
+// If the acting token is a monster, play its whole turn, then move on.
+async function maybeRunMonsterTurn() {
+  const tracker = board.tracker;
+  if (!AUTO_MONSTERS || !tracker.active || monsterTurnRunning) return;
+
+  const token = board.tokens.find((t) => t.id === init.currentTokenId(tracker));
+  if (!token || token.team !== 'monster') return;
+
+  monsterTurnRunning = true;
+  try {
+    await runMonsterTurn({
+      token,
+      getTokens: () => board.tokens,
+      catalog,
+      tracker,
+      performMove: (t, step) => performMove(t, step.x, step.y, false),
+      performAttack: (t, step) => {
+        const target = board.tokens.find((x) => x.id === step.targetId);
+        return performAttack(t, target, step.actionName);
+      },
+      pause: () => new Promise((resolve) => setTimeout(resolve, 800)),
+    });
+  } catch (err) {
+    // A bug in one monster's turn should skip that turn, not crash the table.
+    console.error('Monster turn failed:', err);
+  } finally {
+    monsterTurnRunning = false;
+  }
+
+  if (tracker.active) advanceTurn();
+}
+
+function advanceTurn() {
+  init.endTurn(board.tracker, board.tokens, catalog);
+  broadcast();
+  maybeRunMonsterTurn(); // chains straight into the next monster, if there is one
 }
 
 io.on('connection', (socket) => {
@@ -269,14 +395,12 @@ io.on('connection', (socket) => {
     const token = board.tokens.find((t) => t.id === id);
     if (!token || !canMove(socket, token)) return;
 
-    // Reject moves that leave the room or land on another token.
-    // Either way we broadcast, which snaps the dragged token back if rejected.
-    const { w, h } = footprintOf(token);
-    if (fits(x, y, w, h, id)) {
-      token.x = x;
-      token.y = y;
+    const result = performMove(token, x, y, socket.data.isDM);
+    if (!result.ok) {
+      // Broadcast first, which snaps the dragged token back, then explain why.
+      broadcast();
+      socket.emit('attack:error', { message: result.error });
     }
-    broadcast();
   });
 
   socket.on('attack:declare', ({ attackerId, targetId, actionName, square }) => {
@@ -302,43 +426,9 @@ io.on('connection', (socket) => {
       if (!target || attacker.id === target.id) return;
     }
 
-    const result = resolveAttack({
-      attacker,
-      target,
-      actionName,
-      tokens: board.tokens,
-      catalog,
-      square: aim,
-    });
-
-    // Rule problems (out of range, defeated) go back to the sender only.
-    if (!result.ok) {
-      socket.emit('attack:error', { message: result.error });
-      return;
-    }
-
-    (result.targets || []).forEach((entry) => {
-      const token = board.tokens.find((t) => t.id === entry.id);
-      if (!token) return;
-      token.hp = entry.hpAfter;
-      token.defeated = entry.defeated;
-      if (!Array.isArray(token.conditions)) token.conditions = [];
-      const immune = (catalog[token.creatureId] && catalog[token.creatureId].conditionImmune) || [];
-      (entry.conditions || []).forEach((name) => {
-        if (immune.includes(name) || token.conditions.includes(name)) return;
-        token.conditions.push(name);
-      });
-    });
-
-    board.log.push({
-      id: board.nextLogId++,
-      outcome: result.outcome,
-      dm: result.dm,
-      pub: result.pub,
-    });
-    if (board.log.length > MAX_LOG_ENTRIES) board.log.shift();
-
-    broadcast();
+    // Rule problems (not your turn, out of range) go back to the sender only.
+    const result = performAttack(attacker, target, actionName, aim);
+    if (!result.ok) socket.emit('attack:error', { message: result.error });
   });
 
   socket.on('condition:remove', ({ id, name }) => {
@@ -362,6 +452,40 @@ io.on('connection', (socket) => {
   socket.on('token:remove', ({ id }) => {
     if (!socket.data.isDM) return;
     board.tokens = board.tokens.filter((t) => t.id !== id);
+    init.removeFromCombat(board.tracker, id, board.tokens, catalog);
+    broadcast();
+    maybeRunMonsterTurn();
+    checkForVictory();
+  });
+
+  socket.on('combat:start', () => {
+    if (!socket.data.isDM || board.tracker.active) return;
+
+    const order = init.startCombat(board.tracker, board.tokens, catalog);
+    if (!board.tracker.active) return;
+
+    const summary = order.map((e) => `${e.name} ${e.total}`).join(', ');
+    const text = `Combat begins. Initiative: ${summary}.`;
+    addLog('hit', [text], text);
+    broadcast();
+    maybeRunMonsterTurn();
+  });
+
+  // The DM can end anyone's turn. A player can only end a player's turn.
+  socket.on('combat:next', () => {
+    const tracker = board.tracker;
+    if (!tracker.active || monsterTurnRunning) return;
+
+    const acting = board.tokens.find((t) => t.id === init.currentTokenId(tracker));
+    if (!acting) return;
+    if (!socket.data.isDM && acting.team !== 'player') return;
+
+    advanceTurn();
+  });
+
+  socket.on('combat:end', () => {
+    if (!socket.data.isDM) return;
+    init.endCombat(board.tracker);
     broadcast();
   });
 });

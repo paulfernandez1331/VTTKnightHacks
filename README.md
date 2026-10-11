@@ -18,6 +18,20 @@ The server listens on port 3000.
 
 The DM code defaults to `dm`. Set `DM_CODE` and `PORT` in the environment to change them.
 
+## Combat turns
+
+The DM presses Start combat in the Initiative panel. Every token on the map rolls d20 plus its DEX modifier, and the order is shown to everyone. Ties go to the higher DEX modifier.
+
+- The token whose turn it is has a gold ring. Only that token can attack or move.
+- A turn gives one action and movement equal to speed. The first attack uses the action. A creature with Multiattack or Extra Attack gets its extra swings from the same action.
+- Anyone can end a player's turn with End turn. The DM can end any turn.
+- On a monster's turn the server plays it automatically: it attacks the nearest enemy with its best attack, and walks toward them if nothing is in reach. Set `AUTO_MONSTERS=false` to run monster turns by hand.
+- Tokens placed mid-fight roll initiative and join the order. Combat ends when one side has no one standing, or when the DM presses End combat.
+
+The monster script is in `combat/monsterTurn.js` and the turn tracker is in `combat/initiative.js`. Both are covered by `npm test`.
+
+Some limits come from the exported data. The export has speed 0 for every character, so a speed of 0 is treated as 30 ft. Multiattack is read from its rules text. Save-based actions, auras, and creatures whose attacks do flat damage with no dice (a Badger's bite) are skipped by the monster script.
+
 ## Creature data
 
 The server reads two files when it starts:

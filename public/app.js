@@ -15,7 +15,8 @@ const COLORS = {
 const params = new URLSearchParams(window.location.search);
 const socket = io({ auth: { dmCode: params.get('dm') || '' } });
 
-let state = { tokens: [], creatures: {}, roster: [], isDM: false };
+const NO_COMBAT = { active: false, round: 0, currentTokenId: null, order: [], turn: null };
+let state = { tokens: [], creatures: {}, roster: [], log: [], tracker: NO_COMBAT, isDM: false };
 let openFeatures = new Set();
 let openFeatureToken = null;
 let selected = []; // token ids, the first is the "from" token for measuring
@@ -107,6 +108,13 @@ function hpColor(pct) {
   return '#c0432f';
 }
 
+// Selected wins over the turn highlight, which wins over the plain edge.
+function ringColor(isSelected, isActing) {
+  if (isSelected) return COLORS.select;
+  if (isActing) return COLORS.measure;
+  return COLORS.edge;
+}
+
 const tokenImages = {};
 
 function imageAddress(src) {
@@ -132,6 +140,7 @@ function makeToken(token) {
   const width = w * cell;
   const height = h * cell;
   const isSelected = selected.includes(token.id);
+  const isActing = token.id === state.tracker.currentTokenId;
   const creature = state.creatures[token.creatureId];
   const portrait = tokenPortrait(creature?.token);
 
@@ -149,8 +158,8 @@ function makeToken(token) {
     radiusX: width / 2 - 4,
     radiusY: height / 2 - 4,
     fill: token.team === 'monster' ? COLORS.monster : COLORS.player,
-    stroke: isSelected ? COLORS.select : COLORS.edge,
-    strokeWidth: isSelected ? 4 : 2,
+    stroke: ringColor(isSelected, isActing),
+    strokeWidth: isSelected || isActing ? 4 : 2,
   }));
 
   if (portrait && portrait.complete && portrait.naturalWidth) {
@@ -663,9 +672,14 @@ function renderAttack() {
     if (action.area) notes.push(`${action.area.size}-foot ${action.area.type}`);
     if (action.targets && action.targets.length) notes.push(typeListText(action.targets));
 
+    const turn = state.tracker;
     let reason = '';
     if (attacker.defeated || (!action.area && target && target.defeated)) {
       reason = 'a defeated token is involved';
+    } else if (turn.active && turn.currentTokenId !== attacker.id) {
+      reason = 'not this token\'s turn';
+    } else if (turn.active && turn.turn && turn.turn.actionUsed && turn.turn.attacksLeft === 0) {
+      reason = 'no actions left this turn';
     } else if (!action.area && !target) {
       reason = 'shift-click a target';
     } else if (!action.area && action.targets && action.targets.length && !action.targets.includes(creatureKind(target))) {
@@ -694,6 +708,51 @@ function renderAttack() {
   });
 }
 
+// Turn order, what the acting token has left, and the buttons to run combat.
+function renderInitiative() {
+  const box = document.getElementById('initiative');
+  box.replaceChildren();
+  const tracker = state.tracker;
+
+  if (!tracker.active) {
+    if (state.isDM) {
+      const start = el('button', 'Start combat');
+      start.addEventListener('click', () => socket.emit('combat:start'));
+      box.appendChild(start);
+    } else {
+      box.appendChild(el('p', 'No combat running.', 'detail-sub'));
+    }
+    return;
+  }
+
+  box.appendChild(el('p', `Round ${tracker.round}`, 'detail-name'));
+
+  tracker.order.forEach((entry) => {
+    const isActing = entry.tokenId === tracker.currentTokenId;
+    box.appendChild(el('p', `${entry.name}: ${entry.total}`, isActing ? 'turn acting' : 'turn'));
+  });
+
+  if (tracker.turn) {
+    const actionLeft = !tracker.turn.actionUsed || tracker.turn.attacksLeft > 0;
+    const status = `Action: ${actionLeft ? 'ready' : 'used'}. Movement left: ${tracker.turn.movementLeft} ft.`;
+    box.appendChild(el('p', status, 'detail-sub'));
+  }
+
+  // The DM can end any turn. Players can end a player's turn.
+  const acting = tokenById(tracker.currentTokenId);
+  if (acting && (state.isDM || acting.team === 'player')) {
+    const next = el('button', 'End turn');
+    next.addEventListener('click', () => socket.emit('combat:next'));
+    box.appendChild(next);
+  }
+
+  if (state.isDM) {
+    const end = el('button', 'End combat', 'danger');
+    end.addEventListener('click', () => socket.emit('combat:end'));
+    box.appendChild(end);
+  }
+}
+
 // Newest entry first, so there is no scrolling needed to see the latest attack.
 function renderLog() {
   const box = document.getElementById('log');
@@ -716,6 +775,7 @@ function renderLog() {
 function renderPanel() {
   document.getElementById('role').textContent = state.isDM ? 'Dungeon Master view' : 'Player view';
   renderRoster();
+  renderInitiative();
   renderAttack();
   renderLog();
   renderDetail();
