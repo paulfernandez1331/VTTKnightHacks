@@ -36,6 +36,13 @@ const PROPERTIES = {
 
 const ARMOR = new Set(["light", "medium", "heavy"]);
 
+const CREATURE_TYPES = [
+  "aberration", "beast", "celestial", "construct", "dragon", "elemental",
+  "fey", "fiend", "giant", "humanoid", "monstrosity", "ooze", "plant", "undead"
+];
+const CREATURE_TYPE_SET = new Set(CREATURE_TYPES);
+const TARGET_FILLER = new Set(["of", "your", "choice", "or", "and", "a", "an", "the", "that", "target", "is"]);
+
 const tokenMap = JSON.parse(
   fs.readFileSync(path.join(ROOT, "json/fa-token-mapping.json"), "utf8")
 )["dnd5e.actors24"] ?? {};
@@ -53,7 +60,16 @@ function indexTokenFiles(dir) {
   const walk = current => {
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const full = path.join(current, entry.name);
-      if (entry.isDirectory()) {
+      // Category folders are symlinks while the portraits live beside the repo.
+      let directory = entry.isDirectory();
+      if (!directory && entry.isSymbolicLink()) {
+        try {
+          directory = fs.statSync(full).isDirectory();
+        } catch {
+          directory = false;
+        }
+      }
+      if (directory) {
         if (entry.name === "thumbs") continue;
         walk(full);
       } else if (entry.name.endsWith(".webp")) {
@@ -1046,6 +1062,183 @@ function abilityScores(doc) {
 }
 
 /**
+ * Which saves add proficiency. A missing flag counts as not proficient.
+ * @param {object} doc
+ * @returns {Record<string, boolean>}
+ */
+function saveProficiencies(doc) {
+  const saves = {};
+  for (const key of ["str", "dex", "con", "int", "wis", "cha"]) {
+    saves[key] = Number(doc.system?.abilities?.[key]?.proficient) > 0;
+  }
+  return saves;
+}
+
+/**
+ * An activity template with a type and a size wins, even when override is false.
+ * Breath weapons store the cone or line only on the activity. Fireball leaves the
+ * activity empty and keeps the 20-foot sphere on the item.
+ * @param {object} item
+ * @param {object} activity
+ * @returns {object|undefined}
+ */
+function templateSource(item, activity) {
+  const act = activity.target?.template;
+  const itemTemplate = item.system?.target?.template;
+  const actSize = Number(act?.size);
+  const actHas = act && act.type && Number.isFinite(actSize) && actSize > 0;
+  if (actHas) return act;
+  return itemTemplate;
+}
+
+/**
+ * An overridden activity range wins, including self with no number.
+ * Otherwise a filled activity distance wins, then the item range.
+ * @param {object} item
+ * @param {object} activity
+ * @returns {object}
+ */
+function rangeSource(item, activity) {
+  const act = activity.range ?? {};
+  const itemRange = item.system?.range ?? {};
+  if (act.override === true) return act;
+  const actValue = Number(act.value);
+  if (Number.isFinite(actValue) && actValue > 0) return act;
+  if (itemRange.units || itemRange.value != null || itemRange.reach != null) return itemRange;
+  return act;
+}
+
+/**
+ * Feet from a template width. Fractions such as 1/2 stay as feet.
+ * @param {unknown} value
+ * @returns {number}
+ */
+function feetAmount(value) {
+  if (value == null || value === "") return 0;
+  const text = String(value).trim();
+  const fraction = /^(\d+)\s*\/\s*(\d+)$/.exec(text);
+  if (fraction) {
+    const denominator = Number(fraction[2]);
+    return denominator ? Number(fraction[1]) / denominator : 0;
+  }
+  const amount = Number(text);
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
+/**
+ * Save, Attack, and "1st Save" are placeholders. A specific name is not.
+ * @param {unknown} name
+ * @returns {boolean}
+ */
+function isPlaceholder(name) {
+  const text = typeof name === "string" ? name.trim() : "";
+  if (!text) return false;
+  if (/^(save|attack|cast|damage|heal|check)$/i.test(text)) return true;
+  return /^\d+(st|nd|rd|th)\s+save$/i.test(text);
+}
+
+/**
+ * The creature type stored on an actor. Premade characters with none are humanoid.
+ * @param {object} doc
+ * @param {boolean} monster
+ * @returns {string|null}
+ */
+function creatureKind(doc, monster) {
+  const raw = doc.system?.details?.type;
+  const value = raw && typeof raw === "object" ? raw.value : raw;
+  const slug = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (CREATURE_TYPE_SET.has(slug)) return slug;
+  if (monster) return slug || null;
+  return "humanoid";
+}
+
+/**
+ * First sentence of a plain description.
+ * @param {string} text
+ * @returns {string}
+ */
+function firstSentence(text) {
+  const match = /^.*?[.!?](?:\s|$)/.exec(text);
+  return (match ? match[0] : text).trim();
+}
+
+/**
+ * A plain list of creature types, or an empty list when the text is not one.
+ * A description only counts when its first sentence is a targeting sentence.
+ * @param {string} text
+ * @param {boolean} fromDescription
+ * @returns {string[]}
+ */
+function parsedTargets(text, fromDescription) {
+  const normalized = String(text).replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+  if (fromDescription && !/^(choose|one|each|target)\b/i.test(normalized)) return [];
+  const lower = normalized.toLowerCase();
+  if (/\b(corpse|dead|willing|tiny|small|medium|large|huge|gargantuan|isn't|isnt|not|except)\b/.test(lower)) {
+    return [];
+  }
+  if (/\bcreatures?\b/.test(lower)) return [];
+  const words = lower.replace(/[^a-z'\s]/g, " ").split(/\s+/).filter(Boolean);
+  const types = [];
+  for (const word of words) {
+    if (CREATURE_TYPE_SET.has(word)) {
+      if (!types.includes(word)) types.push(word);
+      continue;
+    }
+    if (fromDescription || TARGET_FILLER.has(word)) continue;
+    return [];
+  }
+  return types;
+}
+
+/**
+ * Activity special, else the item special, else the description's first sentence.
+ * @param {object} item
+ * @param {object} activity
+ * @returns {string[]}
+ */
+function targetTypes(item, activity) {
+  const act = activity.target?.affects?.special;
+  if (typeof act === "string" && act.trim()) return parsedTargets(act, false);
+  const itemSpecial = item.system?.target?.affects?.special;
+  if (typeof itemSpecial === "string" && itemSpecial.trim()) return parsedTargets(itemSpecial, false);
+  const sentence = firstSentence(plainText(item.system?.description?.value));
+  if (!sentence) return [];
+  return parsedTargets(sentence, true);
+}
+
+/**
+ * Attach an area, a creature-type limit, and, for a save, the conditions a failed save applies.
+ * @param {object} action
+ * @param {object} item
+ * @param {object} activity
+ * @returns {object}
+ */
+function finish(action, item, activity) {
+  const source = templateSource(item, activity);
+  const size = Number(source?.size);
+  if (source?.type && Number.isFinite(size) && size > 0) {
+    const units = rangeSource(item, activity).units;
+    const width = feetAmount(source.width);
+    action.area = { type: source.type, size, origin: units === "self" ? "self" : "point" };
+    if ((source.type === "line" || source.type === "wall") && width > 0) action.area.width = width;
+    if (action.area.origin === "self") delete action.reach;
+  }
+  const targets = targetTypes(item, activity);
+  if (targets.length) action.targets = targets;
+  if (activity.type === "save") {
+    const names = [];
+    for (const effect of item.effects || []) {
+      for (const status of effect.statuses || []) {
+        if (status && !names.includes(status)) names.push(status);
+      }
+    }
+    if (names.length) action.conditions = names;
+  }
+  return action;
+}
+
+/**
  * Use a stored flat AC, otherwise armor plus Dex, otherwise 10 plus Dex.
  * @param {object} doc
  * @param {Record<string, number>} abilities
@@ -1142,8 +1335,7 @@ function damageEntry(part, abilityModifier, bakeModifier) {
 function reachAndRange(item, activity, ranged) {
   const act = activity.range ?? {};
   const itemRange = item.system?.range ?? {};
-  const useItem = act.override === false || act.value == null || act.value === "";
-  const source = useItem ? itemRange : act;
+  const source = rangeSource(item, activity);
   const value = Number(source.value);
   const far = Number(source.long ?? itemRange.long);
   const units = source.units || itemRange.units || "";
@@ -1151,13 +1343,14 @@ function reachAndRange(item, activity, ranged) {
   const thrown = props.includes("thr");
   const result = {};
   const distance = Number.isFinite(value) && value > 0 ? value : null;
+  const usingActivity = source === act;
 
   if (ranged || thrown || (units === "ft" && distance && distance > 5)) {
     const normal = distance ?? (Number.isFinite(far) && far > 0 ? far : null);
     if (normal) result.range = { normal, long: Number.isFinite(far) && far > 0 ? far : normal };
   }
   if (!ranged || thrown) {
-    const reach = Number(useItem ? (itemRange.reach ?? (distance && distance <= 5 ? distance : null)) : act.value);
+    const reach = Number(usingActivity ? act.value : (itemRange.reach ?? (distance && distance <= 5 ? distance : null)));
     if (!result.range || thrown) result.reach = Number.isFinite(reach) && reach > 0 ? reach : 5;
   }
   if (!result.range && !result.reach) result.reach = 5;
@@ -1231,7 +1424,7 @@ function toAction(doc, item, activity, abilities, prof, monster) {
     action.saveDc = computed == null ? 8 + prof + abilityMod(abilities[dcAbility]) : computed;
     action.onSave = activity.damage?.onSave || "half";
     action.damage = damageParts(item, activity, modifier, false);
-    return action;
+    return finish(action, item, activity);
   }
 
   if (kind === "damage") {
@@ -1245,25 +1438,25 @@ function toAction(doc, item, activity, abilities, prof, monster) {
       if (index === 0) entry.darts = dartCount(count, level);
       return entry;
     });
-    return action;
+    return finish(action, item, activity);
   }
 
   action.damage = damageParts(item, activity, modifier, monster);
   if (monster) {
     action.kind = isSpell ? "spell" : "attack";
     action.toHit = activity.attack?.flat ? flatBonus : modifier + prof + flatBonus;
-    return action;
+    return finish(action, item, activity);
   }
 
   if (isSpell) {
     action.kind = "spell";
     action.attackAbility = ability;
-    return action;
+    return finish(action, item, activity);
   }
 
   action.kind = "weapon";
   action.properties = weaponProperties(item, ranged);
-  return action;
+  return finish(action, item, activity);
 }
 
 /**
@@ -1330,13 +1523,22 @@ function toCreature(doc, sourcePath, monster) {
     const activities = activityList(item.system?.activities)
       .slice()
       .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    const built = [];
     for (const activity of activities) {
       const action = toAction(doc, item, activity, abilities, prof, monster);
       if (!action) continue;
-      const count = names.get(action.name) ?? 0;
-      names.set(action.name, count + 1);
-      if (count > 0) action.name = `${action.name} (${count + 1})`;
-      actions.push(action);
+      built.push({ action, raw: typeof activity.name === "string" ? activity.name.trim() : "" });
+    }
+    const placeholders = built.filter(entry => isPlaceholder(entry.raw));
+    if (placeholders.length === 1 && item.name) placeholders[0].action.name = item.name;
+    else if (placeholders.length > 1 && item.name) {
+      for (const entry of placeholders) entry.action.name = `${item.name} (${entry.raw})`;
+    }
+    for (const entry of built) {
+      const count = names.get(entry.action.name) ?? 0;
+      names.set(entry.action.name, count + 1);
+      if (count > 0) entry.action.name = `${entry.action.name} (${count + 1})`;
+      actions.push(entry.action);
     }
   }
 
@@ -1360,6 +1562,7 @@ function toCreature(doc, sourcePath, monster) {
     foundryId: doc._id,
     name: monster || !level ? doc.name : `${doc.name} (${level})`,
     team: monster ? "monster" : "player",
+    type: creatureKind(doc, monster),
     rules: "2024",
     sourcePath,
     size: SIZES[doc.system?.traits?.size] ?? doc.system?.traits?.size ?? null,
@@ -1370,6 +1573,7 @@ function toCreature(doc, sourcePath, monster) {
     speed: Number(doc.system?.attributes?.movement?.walk) || 0,
     proficiency: prof,
     abilities,
+    saves: saveProficiencies(doc),
     resist: traitList(doc, "dr"),
     immune: traitList(doc, "di"),
     vuln: traitList(doc, "dv"),
@@ -1430,6 +1634,10 @@ else {
     failures.push(`Zanna Magic Missile is ${JSON.stringify(missile)}`);
   }
   if (missile?.damage?.[0]?.darts !== 3) failures.push(`Magic Missile darts are ${missile?.damage?.[0]?.darts}`);
+  if (missile?.area) failures.push("Magic Missile should not cover an area");
+  if (!zanna.saves || zanna.saves.int !== true || zanna.saves.wis !== true || zanna.saves.str !== false) {
+    failures.push(`Zanna saves are ${JSON.stringify(zanna.saves)}`);
+  }
 }
 const nimble = goblin?.traits?.find(trait => trait.name === "Nimble Escape");
 if (nimble?.summary !== "The goblin warrior takes the Disengage or Hide action.") {
@@ -1483,6 +1691,115 @@ if (!secondWind?.summary.includes("1d10") || !secondWind.summary.includes("Long 
 const surge = randal?.features?.find(feature => feature.name === "Action Surge");
 if (!surge?.summary.includes("additional action") || !surge.summary.includes("level 17")) {
   failures.push(`Action Surge is ${JSON.stringify(surge)}`);
+}
+const mage = monsters.find(monster => monster.id === "mmMage0000000000");
+const fireball = mage?.actions.find(action => action.name === "Fireball");
+if (!fireball?.area || fireball.area.type !== "sphere" || fireball.area.size !== 20 || fireball.area.origin !== "point") {
+  failures.push(`Mage Fireball area is ${JSON.stringify(fireball && fireball.area)}`);
+}
+const hold = sefris?.actions.find(action => action.name === "Hold Person");
+if (!hold || hold.area || !hold.conditions || hold.conditions[0] !== "paralyzed") {
+  failures.push(`Hold Person is ${JSON.stringify(hold)}`);
+}
+const morthos = characters.find(character => character.id === "MorthosLv0100000");
+const hands = morthos?.actions.find(action => action.name === "Burning Hands");
+if (!hands?.area || hands.area.type !== "cone" || hands.area.size !== 15 || hands.area.origin !== "self" || hands.reach) {
+  failures.push(`Burning Hands is ${JSON.stringify(hands)}`);
+}
+const zanna1 = characters.find(character => character.id === "ZannaLv010000000");
+const wave = zanna1?.actions.find(action => action.name === "Thunderwave");
+if (!wave?.area || wave.area.type !== "cube" || wave.area.size !== 15 || wave.area.origin !== "self" || wave.reach) {
+  failures.push(`Thunderwave is ${JSON.stringify(wave)}`);
+}
+const redDragon = monsters.find(monster => monster.id === "mmAdultRedDragon");
+const redBreath = redDragon?.actions.find(action => action.name === "Fire Breath");
+if (!redBreath?.area || redBreath.area.type !== "cone" || redBreath.area.size !== 60 || redBreath.area.origin !== "self") {
+  failures.push(`Adult Red Fire Breath is ${JSON.stringify(redBreath && redBreath.area)}`);
+}
+const goldDragon = monsters.find(monster => monster.id === "mmAdultGoldDrago");
+const banish = goldDragon?.actions.find(action => action.name === "Banish");
+if (!banish || banish.area || banish.range?.normal !== 120 || banish.reach) {
+  failures.push(`Banish is ${JSON.stringify(banish)}`);
+}
+const goldBreath = goldDragon?.actions.find(action => action.name === "Fire Breath");
+if (!goldBreath?.area || goldBreath.area.type !== "line" || goldBreath.area.size !== 15 || goldBreath.area.width !== 5 || goldBreath.area.origin !== "self") {
+  failures.push(`Adult Gold Fire Breath is ${JSON.stringify(goldBreath && goldBreath.area)}`);
+}
+const green = monsters.find(monster => monster.id === "mmAdultGreenDrag");
+const greenBreath = green?.actions.find(action => action.name === "Poison Breath");
+if (green?.type !== "dragon") failures.push(`Adult Green type is ${green?.type}`);
+if (!greenBreath?.area || greenBreath.area.type !== "cone" || greenBreath.area.size !== 60 || greenBreath.area.origin !== "self") {
+  failures.push(`Adult Green Poison Breath is ${JSON.stringify(greenBreath)}`);
+}
+if (green?.actions.some(action => action.name === "Save")) {
+  failures.push("Adult Green still has an action named Save");
+}
+const ancientGreen = monsters.find(monster => monster.id === "mmAncientGreenDr");
+const ancientBreath = ancientGreen?.actions.find(action => action.name === "Poison Breath");
+if (!ancientBreath?.area || ancientBreath.area.type !== "cone" || ancientBreath.area.size !== 15 || ancientBreath.area.origin !== "self") {
+  failures.push(`Ancient Green Poison Breath is ${JSON.stringify(ancientBreath && ancientBreath.area)}`);
+}
+const brass = monsters.find(monster => monster.id === "mmAdultBrassDrag");
+const firstSleep = brass?.actions.find(action => action.name === "Sleep Breath (1st Save)");
+const secondSleep = brass?.actions.find(action => action.name === "Sleep Breath (2nd Save)");
+if (!firstSleep?.area || firstSleep.area.type !== "cone" || firstSleep.area.size !== 60 || firstSleep.area.origin !== "self" || !secondSleep) {
+  failures.push(`Sleep Breath names are ${firstSleep?.name} / ${secondSleep?.name}`);
+}
+const morthos5 = characters.find(character => character.id === "MorthosLv0500000");
+const exhale = morthos5?.actions.find(action => action.name === "Exhale");
+if (!exhale?.area || exhale.area.type !== "cone" || exhale.area.size !== 15 || exhale.area.origin !== "self" || exhale.reach) {
+  failures.push(`Exhale is ${JSON.stringify(exhale && { area: exhale.area, reach: exhale.reach, range: exhale.range })}`);
+}
+const krusk = characters.find(character => character.id === "KruskLv110000000");
+const bolt = krusk?.actions.find(action => action.name === "Lightning Bolt");
+if (!bolt?.area || bolt.area.type !== "line" || bolt.area.origin !== "point" || bolt.area.size !== 120 || bolt.range?.normal !== 120) {
+  failures.push(`Krusk Lightning Bolt is ${JSON.stringify(bolt && { area: bolt.area, range: bolt.range, reach: bolt.reach })}`);
+}
+if (!hold?.targets || hold.targets.length !== 1 || hold.targets[0] !== "humanoid") {
+  failures.push(`Hold Person targets are ${JSON.stringify(hold?.targets)}`);
+}
+const akra = characters.find(character => character.id === "AkraLv0500000000");
+const turn = akra?.actions.find(action => action.name === "Turn Undead");
+const sear = akra?.actions.find(action => action.name === "Channel Divinity: Turn Undead");
+if (!turn || turn.area || !turn.targets || turn.targets.length !== 1 || turn.targets[0] !== "undead" || turn.range?.normal !== 30) {
+  failures.push(`Turn Undead is ${JSON.stringify(turn && { area: turn.area, targets: turn.targets, range: turn.range })}`);
+}
+if (!sear?.area || sear.area.type !== "radius" || sear.area.size !== 30 || sear.area.origin !== "self" || !sear.targets || sear.targets[0] !== "undead") {
+  failures.push(`Sear Undead is ${JSON.stringify(sear && { name: sear.name, area: sear.area, targets: sear.targets })}`);
+}
+if (fireball?.targets) failures.push(`Fireball targets are ${JSON.stringify(fireball.targets)}`);
+if (zanna && zanna.type !== "humanoid") failures.push(`Zanna type is ${zanna.type}`);
+if (goblin && goblin.type !== "fey") failures.push(`Goblin type is ${goblin.type}`);
+const zombie = monsters.find(monster => monster.id === "mmZombie00000000");
+if (zombie?.type !== "undead") failures.push(`Zombie type is ${zombie?.type}`);
+const harpy = monsters.find(monster => monster.id === "mmHarpy000000000");
+const song = harpy?.actions.find(action => action.name === "Luring Song");
+if (!song?.targets || song.targets.join(",") !== "humanoid,giant" || song.area?.type !== "radius" || song.area.size !== 300 || song.area.origin !== "self") {
+  failures.push(`Luring Song is ${JSON.stringify(song && { area: song.area, targets: song.targets })}`);
+}
+const hag = monsters.find(monster => monster.id === "mmSeaHag00000000");
+const vile = hag?.actions.find(action => action.name === "Vile Appearance");
+if (!vile?.targets || vile.targets.join(",") !== "beast,humanoid" || vile.area) {
+  failures.push(`Vile Appearance is ${JSON.stringify(vile && { area: vile.area, targets: vile.targets })}`);
+}
+const unicorn = monsters.find(monster => monster.id === "mmUnicorn0000000");
+const dismissal = unicorn?.actions.find(action => action.name === "Dismissal");
+if (!dismissal?.targets || dismissal.targets.join(",") !== "celestial,elemental,fey,fiend,undead") {
+  failures.push(`Dismissal targets are ${JSON.stringify(dismissal?.targets)}`);
+}
+const ghoul = monsters.find(monster => monster.id === "mmGhoul000000000");
+if (ghoul?.actions.some(action => action.name.startsWith("Claw") && action.targets)) {
+  failures.push(`Ghoul Claw gained targets ${JSON.stringify(ghoul.actions.filter(action => action.name.startsWith("Claw")))}`);
+}
+const efreeti = monsters.find(monster => monster.id === "mmEfreeti0000000");
+const wall = efreeti?.actions.find(action => action.name === "Create Wall");
+if (!wall?.area || wall.area.type !== "wall" || wall.area.size !== 60 || wall.area.width !== 1 || wall.area.origin !== "point" || wall.range?.normal !== 120) {
+  failures.push(`Create Wall is ${JSON.stringify(wall && { area: wall.area, range: wall.range, reach: wall.reach })}`);
+}
+const ice = monsters.find(monster => monster.id === "mmIceDevil000000");
+const panels = ice?.actions.find(action => action.name === "Create Panels");
+if (!panels?.area || panels.area.type !== "wall" || panels.area.size !== 10 || panels.area.origin !== "point" || panels.range?.normal !== 120) {
+  failures.push(`Create Panels is ${JSON.stringify(panels && { area: panels.area, range: panels.range })}`);
 }
 const agonizing = sefris?.features?.find(feature => feature.name === "Agonizing Blast");
 if (!agonizing?.summary.includes("Charisma") || !agonizing.summary.includes("more than once")) {

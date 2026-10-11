@@ -77,6 +77,15 @@ h2 {
 }
 .roster-search:focus { outline: 2px solid var(--brass); outline-offset: 2px; }
 
+.import-form {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.import-form .roster-search { margin: 0; flex: 1; min-width: 0; }
+.import-msg { min-height: 0; margin: 0 0 8px; font-size: 14px; color: #e0897a; }
+.import-msg:empty { display: none; }
+
 .roster {
   display: flex;
   flex-direction: column;
@@ -129,7 +138,10 @@ button.danger { margin-top: 12px; border-color: var(--monster); }
 
 .attack-actions { display: flex; flex-direction: column; gap: 6px; }
 .attack-actions button { text-align: left; }
+.attack-actions button.armed { border-color: var(--brass); color: var(--brass); }
 .attack-actions button:disabled { opacity: 0.45; cursor: not-allowed; border-color: #44505e; }
+.condition-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
+.condition-row button { margin: 0; }
 .hint { display: block; font-size: 12px; color: var(--muted); }
 .attack-msg { min-height: 20px; margin: 8px 0 0; font-size: 14px; color: #e0897a; }
 

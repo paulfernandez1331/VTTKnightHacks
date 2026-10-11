@@ -1,6 +1,9 @@
 # Dependencies, rebuilt by npm install
 node_modules/
 
+# Characters imported from a pasted D&D Beyond link.
+data/imports/*.json
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

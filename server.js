@@ -1,7 +1,9 @@
 const express = require('express');
+const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
+const { spawn } = require('child_process');
 const { Server } = require('socket.io');
 const { GRID, insideRoom } = require('./public/rules.js');
 const { resolveAttack } = require('./combat/attack.js');
@@ -17,6 +19,34 @@ const catalog = {};
 [...monsters, ...characters].forEach((c) => {
   catalog[c.id] = c;
 });
+
+// Ids from the two shipped files. An import must not replace one of them.
+const premadeIds = new Set(Object.keys(catalog));
+const IMPORTS_DIR = path.join(__dirname, 'data/imports');
+
+function loadImports() {
+  if (!fs.existsSync(IMPORTS_DIR)) return;
+  fs.readdirSync(IMPORTS_DIR).filter((name) => name.endsWith('.json') && !name.startsWith('.')).forEach((name) => {
+    let data;
+    try {
+      data = JSON.parse(fs.readFileSync(path.join(IMPORTS_DIR, name), 'utf8'));
+    } catch (err) {
+      console.warn(`Skipping ${name}: ${err.message}`);
+      return;
+    }
+    const list = Array.isArray(data) ? data : [data];
+    list.forEach((creature) => {
+      if (!creature || !creature.id) return;
+      if (premadeIds.has(creature.id)) {
+        console.warn(`Skipping import ${creature.id}; a premade already uses that id.`);
+        return;
+      }
+      catalog[creature.id] = creature;
+    });
+  });
+}
+
+loadImports();
 
 const app = express();
 const server = http.createServer(app);
@@ -39,7 +69,7 @@ function buildState(isDM) {
   const tokens = board.tokens.map((t) => {
     const c = catalog[t.creatureId];
     const canSeeAll = isDM || c.team === 'player';
-    creatures[c.id] = canSeeAll ? c : { id: c.id, name: c.name, team: c.team, token: c.token };
+    creatures[c.id] = canSeeAll ? c : { id: c.id, name: c.name, team: c.team, token: c.token, type: c.type };
     return canSeeAll ? t : { ...t, hp: null, maxHp: null };
   });
 
@@ -105,6 +135,79 @@ function canMove(socket, token) {
   return socket.data.isDM || token.team === 'player';
 }
 
+function placeCreature(creature) {
+  const w = creature.width || 1;
+  const h = creature.height || 1;
+  const spot = findFreeSpot(w, h);
+  if (!spot) return null;
+
+  let name = creature.name;
+  if (creature.team === 'monster') {
+    const count = board.tokens.filter((t) => t.creatureId === creature.id).length;
+    name = `${creature.name} ${count + 1}`;
+  }
+
+  const token = {
+    id: board.nextId++,
+    creatureId: creature.id,
+    name,
+    team: creature.team,
+    x: spot.x,
+    y: spot.y,
+    w,
+    h,
+    hp: creature.hp,
+    maxHp: creature.hp,
+    defeated: false,
+    conditions: [],
+  };
+  board.tokens.push(token);
+  return token;
+}
+
+// Run the teammate scripts. They request the character-service URL themselves.
+function runConverter(url, outPath) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('python3', [
+      path.join(__dirname, 'tools/get_character.py'),
+      '--url',
+      url,
+      '--out',
+      outPath,
+    ], { cwd: path.join(__dirname, 'tools') });
+
+    let stderr = '';
+    child.stderr.on('data', (buf) => {
+      stderr += buf;
+    });
+
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error('The request timed out. Please try again.'));
+    }, 35000);
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      if (err.code === 'ENOENT') reject(new Error('python3 was not found.'));
+      else reject(err);
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve();
+      else reject(new Error((stderr || '').trim() || `The converter exited with status ${code}.`));
+    });
+  });
+}
+
+function readConverted(filePath) {
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const list = Array.isArray(data) ? data : [data];
+  const creature = list.find((entry) => entry && entry.id);
+  if (!creature) throw new Error('The converter did not return a character.');
+  return creature;
+}
+
 io.on('connection', (socket) => {
   socket.data.isDM = socket.handshake.auth.dmCode === DM_CODE;
   socket.emit('state', buildState(socket.data.isDM));
@@ -115,33 +218,51 @@ io.on('connection', (socket) => {
     // Players can only place characters, and each character only once.
     if (!socket.data.isDM && c.team !== 'player') return;
     if (c.team === 'player' && board.tokens.some((t) => t.creatureId === c.id)) return;
-
-    const w = c.width || 1;
-    const h = c.height || 1;
-    const spot = findFreeSpot(w, h);
-    if (!spot) return;
-
-    // Monsters get numbered so "Goblin 1" and "Goblin 2" are easy to tell apart.
-    let name = c.name;
-    if (c.team === 'monster') {
-      const count = board.tokens.filter((t) => t.creatureId === c.id).length;
-      name = `${c.name} ${count + 1}`;
-    }
-
-    board.tokens.push({
-      id: board.nextId++,
-      creatureId: c.id,
-      name,
-      team: c.team,
-      x: spot.x,
-      y: spot.y,
-      w,
-      h,
-      hp: c.hp,
-      maxHp: c.hp,
-      defeated: false,
-    });
+    if (!placeCreature(c)) return;
     broadcast();
+  });
+
+  socket.on('character:import', async ({ url }) => {
+    const pasted = typeof url === 'string' ? url : '';
+    const tempPath = path.join(IMPORTS_DIR, `.incoming-${process.pid}-${Date.now()}.json`);
+    try {
+      fs.mkdirSync(IMPORTS_DIR, { recursive: true });
+      await runConverter(pasted, tempPath);
+      const creature = readConverted(tempPath);
+      const keptPath = path.join(IMPORTS_DIR, `${creature.id}.json`);
+      fs.renameSync(tempPath, keptPath);
+
+      if (premadeIds.has(creature.id)) {
+        fs.unlinkSync(keptPath);
+        socket.emit('character:import:error', {
+          message: 'A premade character already uses that id.',
+        });
+        return;
+      }
+
+      catalog[creature.id] = creature;
+      if (board.tokens.some((t) => t.creatureId === creature.id)) {
+        socket.emit('character:import:error', {
+          message: 'That character is already on the map.',
+        });
+        broadcast();
+        return;
+      }
+
+      const token = placeCreature(creature);
+      if (!token) {
+        socket.emit('character:import:error', { message: 'The map has no open square.' });
+        broadcast();
+        return;
+      }
+      broadcast();
+      socket.emit('character:import:ok', { tokenId: token.id });
+    } catch (err) {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      socket.emit('character:import:error', {
+        message: err.message || 'The character could not be added.',
+      });
+    }
   });
 
   socket.on('token:move', ({ id, x, y }) => {
@@ -158,13 +279,28 @@ io.on('connection', (socket) => {
     broadcast();
   });
 
-  socket.on('attack:declare', ({ attackerId, targetId, actionName }) => {
+  socket.on('attack:declare', ({ attackerId, targetId, actionName, square }) => {
     const attacker = board.tokens.find((t) => t.id === attackerId);
-    const target = board.tokens.find((t) => t.id === targetId);
-    if (!attacker || !target || attacker.id === target.id) return;
+    if (!attacker) return;
 
     // Players can only attack with their own side's tokens.
     if (!socket.data.isDM && attacker.team !== 'player') return;
+
+    const creature = catalog[attacker.creatureId];
+    const action = creature && (creature.actions || []).find((entry) => entry.name === actionName);
+    let target = null;
+    let aim = null;
+
+    if (action && action.area) {
+      if (!square || !Number.isInteger(square.x) || !Number.isInteger(square.y)) {
+        socket.emit('attack:error', { message: 'Choose a square for that spell.' });
+        return;
+      }
+      aim = { x: square.x, y: square.y };
+    } else {
+      target = board.tokens.find((t) => t.id === targetId);
+      if (!target || attacker.id === target.id) return;
+    }
 
     const result = resolveAttack({
       attacker,
@@ -172,6 +308,7 @@ io.on('connection', (socket) => {
       actionName,
       tokens: board.tokens,
       catalog,
+      square: aim,
     });
 
     // Rule problems (out of range, defeated) go back to the sender only.
@@ -180,8 +317,18 @@ io.on('connection', (socket) => {
       return;
     }
 
-    target.hp = result.hpAfter;
-    target.defeated = result.defeated;
+    (result.targets || []).forEach((entry) => {
+      const token = board.tokens.find((t) => t.id === entry.id);
+      if (!token) return;
+      token.hp = entry.hpAfter;
+      token.defeated = entry.defeated;
+      if (!Array.isArray(token.conditions)) token.conditions = [];
+      const immune = (catalog[token.creatureId] && catalog[token.creatureId].conditionImmune) || [];
+      (entry.conditions || []).forEach((name) => {
+        if (immune.includes(name) || token.conditions.includes(name)) return;
+        token.conditions.push(name);
+      });
+    });
 
     board.log.push({
       id: board.nextLogId++,
@@ -191,6 +338,14 @@ io.on('connection', (socket) => {
     });
     if (board.log.length > MAX_LOG_ENTRIES) board.log.shift();
 
+    broadcast();
+  });
+
+  socket.on('condition:remove', ({ id, name }) => {
+    if (!socket.data.isDM) return;
+    const token = board.tokens.find((t) => t.id === id);
+    if (!token || !Array.isArray(token.conditions)) return;
+    token.conditions = token.conditions.filter((condition) => condition !== name);
     broadcast();
   });
 

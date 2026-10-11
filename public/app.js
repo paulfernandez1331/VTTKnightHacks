@@ -1,4 +1,4 @@
-const { GRID, feetBetween, squareDistance } = window.Rules;
+const { GRID, feetBetween, squareDistance, insideRoom, areaSquares, coversSquare } = window.Rules;
 
 // Colors for the battlemat itself. The page chrome lives in style.css.
 const COLORS = {
@@ -19,6 +19,8 @@ let state = { tokens: [], creatures: {}, roster: [], isDM: false };
 let openFeatures = new Set();
 let openFeatureToken = null;
 let selected = []; // token ids, the first is the "from" token for measuring
+let armed = null; // { actionName } while an area spell is waiting for a square
+let swallowClick = false;
 let tokenNodes = {}; // token id -> Konva group
 
 // ---------- Stage and layers ----------
@@ -29,9 +31,10 @@ const stage = new Konva.Stage({
   height: GRID.rows * GRID.size,
 });
 const gridLayer = new Konva.Layer();
+const areaLayer = new Konva.Layer({ listening: false });
 const tokenLayer = new Konva.Layer();
 const measureLayer = new Konva.Layer({ listening: false });
-stage.add(gridLayer, tokenLayer, measureLayer);
+stage.add(gridLayer, areaLayer, tokenLayer, measureLayer);
 
 function drawGrid() {
   const width = GRID.cols * GRID.size;
@@ -50,13 +53,25 @@ function drawGrid() {
   gridLayer.batchDraw();
 }
 
-// Clicking empty mat clears the selection.
+// An armed area spell casts at the square under the pointer. Otherwise, empty mat clears the selection.
+stage.on('click tap', () => {
+  if (armed || swallowClick) {
+    if (armed) castArmed();
+    return;
+  }
+});
+
 stage.on('click tap', (e) => {
+  if (armed || swallowClick) return;
   if (e.target.getLayer() !== tokenLayer) {
     selected = [];
     renderTokens();
     renderPanel();
   }
+});
+
+stage.on('mousemove mouseleave', () => {
+  if (armed) drawMask();
 });
 
 // ---------- Tokens ----------
@@ -94,11 +109,17 @@ function hpColor(pct) {
 
 const tokenImages = {};
 
+function imageAddress(src) {
+  if (!src) return null;
+  if (/^https?:\/\//i.test(src)) return src;
+  return `/${src}`;
+}
+
 function tokenPortrait(src) {
   if (!src) return null;
   if (!tokenImages[src]) {
     const image = new Image();
-    image.src = `/${src}`;
+    image.src = imageAddress(src);
     image.onload = () => renderTokens();
     tokenImages[src] = image;
   }
@@ -170,7 +191,16 @@ function makeToken(token) {
     group.add(new Konva.Rect({ x: 6, y: height - 9, width: (width - 12) * pct, height: 5, fill: hpColor(pct), listening: false }));
   }
 
-  group.on('click tap', (e) => selectToken(token.id, e.evt.shiftKey));
+  group.name('battle-token');
+  group.setAttr('tokenId', token.id);
+  group.on('click tap', (e) => {
+    if (armed || swallowClick) {
+      e.cancelBubble = true;
+      if (armed) castArmed();
+      return;
+    }
+    selectToken(token.id, e.evt.shiftKey);
+  });
   group.on('dragmove', updateMeasure);
   group.on('dragend', () => {
     const x = Math.round(group.x() / cell);
@@ -227,6 +257,13 @@ function nameOf(id) {
 
 function updateMeasure() {
   measureLayer.destroyChildren();
+  if (armed) {
+    drawMask();
+    measureLayer.batchDraw();
+    return;
+  }
+  areaLayer.destroyChildren();
+  areaLayer.batchDraw();
   const readout = document.getElementById('distance');
 
   const a = selected.length === 2 ? currentSquare(selected[0]) : null;
@@ -335,7 +372,7 @@ function renderDetail() {
     const portrait = document.createElement('img');
     portrait.className = 'portrait';
     portrait.alt = '';
-    portrait.src = `/${c.token}`;
+    portrait.src = imageAddress(c.token);
     box.appendChild(portrait);
   }
   box.appendChild(el('p', token.name, 'detail-name'));
@@ -363,6 +400,24 @@ function renderDetail() {
       if (list && list.length > 0) {
         box.appendChild(el('p', `${label}: ${list.join(', ')}`, 'defenses'));
       }
+    });
+  }
+
+  const conditions = token.conditions || [];
+  if (conditions.length > 0) {
+    box.appendChild(el('p', 'Conditions', 'defenses'));
+    conditions.forEach((name) => {
+      const row = el('div', undefined, 'condition-row');
+      row.appendChild(el('span', conditionLabel(name)));
+      if (state.isDM) {
+        const remove = el('button', 'Remove');
+        remove.type = 'button';
+        remove.addEventListener('click', () => {
+          socket.emit('condition:remove', { id: token.id, name });
+        });
+        row.appendChild(remove);
+      }
+      box.appendChild(row);
     });
   }
 
@@ -404,6 +459,24 @@ function tokenById(id) {
   return state.tokens.find((t) => t.id === id);
 }
 
+const ABILITY_LABELS = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+};
+
+function conditionLabel(name) {
+  const text = String(name).replace(/-/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function abilityLabel(ability) {
+  return ABILITY_LABELS[ability] || ability;
+}
+
 // The farthest an action can reach, counting both melee reach and ranged distance.
 function maxReach(action) {
   const reach = action.reach || 0;
@@ -411,8 +484,154 @@ function maxReach(action) {
   return Math.max(reach, range);
 }
 
-// Shows one button per action the attacker has. Select an attacker, then
-// shift-click a target. Both stay selected so you can keep attacking.
+function armedAction() {
+  if (!armed) return null;
+  const attacker = tokenById(selected[0]);
+  if (!attacker || attacker.defeated) return null;
+  const creature = state.creatures[attacker.creatureId];
+  const actions = (creature && creature.actions) || [];
+  const action = actions.find((entry) => entry.name === armed.actionName);
+  if (!action || !action.area) return null;
+  return { attacker, action };
+}
+
+function pointerSquare() {
+  const pos = stage.getPointerPosition();
+  if (!pos) return null;
+  const x = Math.floor(pos.x / GRID.size);
+  const y = Math.floor(pos.y / GRID.size);
+  if (!insideRoom(x, y)) return null;
+  return { x, y, w: 1, h: 1 };
+}
+
+function selfAimed(action) {
+  const type = action.area && action.area.type;
+  return action.area && action.area.origin === 'self' && (type === 'cone' || type === 'line' || type === 'cube' || type === 'square' || type === 'wall');
+}
+
+function typeListText(types) {
+  if (types.length === 1) return types[0];
+  if (types.length === 2) return `${types[0]} or ${types[1]}`;
+  return `${types.slice(0, -1).join(', ')}, or ${types[types.length - 1]}`;
+}
+
+function creatureKind(token) {
+  const creature = token && state.creatures[token.creatureId];
+  if (creature && creature.type) return String(creature.type).toLowerCase();
+  if (token && token.team === 'player') return 'humanoid';
+  return '';
+}
+
+function selfDisk(action) {
+  const type = action.area && action.area.type;
+  return action.area && action.area.origin === 'self' && (type === 'sphere' || type === 'circle' || type === 'radius' || type === 'cylinder');
+}
+
+// The mask uses the same square list the server resolves, drawn from the token's stored position.
+function drawMask() {
+  areaLayer.destroyChildren();
+  const current = armedAction();
+  const square = pointerSquare();
+  const readout = document.getElementById('distance');
+
+  const disk = current && selfDisk(current.action);
+  if (!current || (!disk && !square)) {
+    if (armed) readout.textContent = 'Point at a square on the mat.';
+    areaLayer.batchDraw();
+    return;
+  }
+
+  const aimed = selfAimed(current.action);
+  const onSelf = Boolean(square && coversSquare(current.attacker, square.x, square.y));
+  const feet = square ? feetBetween(current.attacker, square) : 0;
+  const inRange = disk || (aimed ? !onSelf : feet <= maxReach(current.action));
+  const fill = inRange ? 'rgba(199, 154, 59, 0.45)' : 'rgba(162, 64, 47, 0.35)';
+  const stroke = inRange ? '#c79a3b' : '#a2402f';
+  const show = disk || (square && !(aimed && onSelf));
+  const squares = show ? areaSquares(current.attacker, disk ? current.attacker : square, current.action.area) : [];
+
+  squares.forEach((cell) => {
+    const isCenter = square && cell.x === square.x && cell.y === square.y;
+    areaLayer.add(new Konva.Rect({
+      name: 'area-mask',
+      x: cell.x * GRID.size,
+      y: cell.y * GRID.size,
+      width: GRID.size,
+      height: GRID.size,
+      fill,
+      stroke: isCenter ? stroke : null,
+      strokeWidth: isCenter ? 3 : 0,
+      listening: false,
+    }));
+  });
+
+  areaLayer.batchDraw();
+  if (disk) {
+    readout.textContent = `${current.attacker.name}: ${current.action.area.size}-foot ${current.action.area.type} around them`;
+  } else if (aimed && onSelf) {
+    readout.textContent = 'Point away from yourself.';
+  } else if (aimed) {
+    readout.textContent = `${current.attacker.name} toward square (${square.x}, ${square.y})`;
+  } else {
+    readout.textContent = `${current.attacker.name} to square (${square.x}, ${square.y}): ${feet} ft${inRange ? '' : ' (out of range)'}`;
+  }
+}
+
+function disarm() {
+  armed = null;
+  updateMeasure();
+  renderAttack();
+}
+
+function arm(actionName) {
+  if (armed && armed.actionName === actionName) {
+    disarm();
+    return;
+  }
+  armed = { actionName };
+  renderAttack();
+  updateMeasure();
+}
+
+function castArmed() {
+  if (swallowClick) return;
+  swallowClick = true;
+  setTimeout(() => {
+    swallowClick = false;
+  }, 250);
+
+  const current = armedAction();
+  const square = pointerSquare();
+  const message = document.getElementById('attack-msg');
+  if (!current || !square) {
+    message.textContent = 'Point at a square on the mat.';
+    return;
+  }
+  const aimed = selfAimed(current.action);
+  const disk = selfDisk(current.action);
+  if (aimed && coversSquare(current.attacker, square.x, square.y)) {
+    message.textContent = 'Point away from yourself.';
+    return;
+  }
+  const feet = feetBetween(current.attacker, square);
+  const reach = maxReach(current.action);
+  if (!aimed && !disk && feet > reach) {
+    message.textContent = `That square is ${feet} ft away, but ${current.action.name} only reaches ${reach} ft.`;
+    return;
+  }
+
+  const attackerId = current.attacker.id;
+  const actionName = current.action.name;
+  disarm();
+  socket.emit('attack:declare', {
+    attackerId,
+    actionName,
+    square: { x: square.x, y: square.y },
+  });
+}
+
+// Shows one button per action the attacker has. An area spell is aimed at a square.
+// Anything else still needs a shift-clicked creature.
 function renderAttack() {
   const box = document.getElementById('attack-actions');
   box.replaceChildren();
@@ -421,13 +640,13 @@ function renderAttack() {
   const attacker = tokenById(selected[0]);
   const target = tokenById(selected[1]);
 
-  if (!attacker || !target) {
+  if (!attacker) {
     box.appendChild(el('p', 'Select an attacker, then shift-click a target.', 'detail-sub'));
     return;
   }
 
   const creature = state.creatures[attacker.creatureId];
-  const actions = creature.actions || [];
+  const actions = (creature && creature.actions) || [];
   const allowed = state.isDM || attacker.team === 'player';
 
   if (actions.length === 0 || !allowed) {
@@ -435,26 +654,36 @@ function renderAttack() {
     return;
   }
 
-  const feet = feetBetween(attacker, target);
+  const feet = target ? feetBetween(attacker, target) : null;
 
   actions.forEach((action) => {
     const button = el('button', action.name);
-    let hint = '';
+    const notes = [];
+    if (action.saveAbility) notes.push(`DC ${action.saveDc} ${abilityLabel(action.saveAbility)}`);
+    if (action.area) notes.push(`${action.area.size}-foot ${action.area.type}`);
+    if (action.targets && action.targets.length) notes.push(typeListText(action.targets));
 
-    if (attacker.defeated || target.defeated) {
-      hint = 'a defeated token is involved';
-    } else if (action.saveAbility) {
-      hint = 'needs save rules (coming soon)';
-    } else if (feet > maxReach(action)) {
-      hint = `out of range (${feet} ft away)`;
+    let reason = '';
+    if (attacker.defeated || (!action.area && target && target.defeated)) {
+      reason = 'a defeated token is involved';
+    } else if (!action.area && !target) {
+      reason = 'shift-click a target';
+    } else if (!action.area && action.targets && action.targets.length && !action.targets.includes(creatureKind(target))) {
+      reason = `only a ${typeListText(action.targets)}`;
+    } else if (!action.area && feet > maxReach(action)) {
+      reason = `out of range (${feet} ft away)`;
     }
 
-    if (hint) {
-      button.disabled = true;
-      button.appendChild(el('span', hint, 'hint'));
-    }
+    const hint = [reason, notes.join(', ')].filter(Boolean).join(' · ');
+    if (hint) button.appendChild(el('span', hint, 'hint'));
+    if (reason) button.disabled = true;
+    if (armed && armed.actionName === action.name && action.area) button.classList.add('armed');
 
     button.addEventListener('click', () => {
+      if (action.area) {
+        arm(action.name);
+        return;
+      }
       socket.emit('attack:declare', {
         attackerId: attacker.id,
         targetId: target.id,
@@ -498,6 +727,7 @@ socket.on('state', (newState) => {
   state = newState;
   // Drop any selected tokens that no longer exist.
   selected = selected.filter((id) => state.tokens.some((t) => t.id === id));
+  if (armed && !armedAction()) armed = null;
   renderTokens();
   renderPanel();
 });
@@ -505,6 +735,38 @@ socket.on('state', (newState) => {
 // Rule errors such as "out of range" come back only to the player who asked.
 socket.on('attack:error', ({ message }) => {
   document.getElementById('attack-msg').textContent = message;
+});
+
+const importForm = document.getElementById('import-form');
+const importUrl = document.getElementById('import-url');
+const importMsg = document.getElementById('import-msg');
+const importButton = importForm.querySelector('button');
+
+importForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const url = importUrl.value.trim();
+  importMsg.textContent = '';
+  if (!url) {
+    importMsg.textContent = 'Invalid input: No character ID or URL was entered.';
+    return;
+  }
+  importButton.disabled = true;
+  socket.emit('character:import', { url });
+});
+
+socket.on('character:import:error', ({ message }) => {
+  importButton.disabled = false;
+  importMsg.textContent = message;
+});
+
+socket.on('character:import:ok', ({ tokenId }) => {
+  importButton.disabled = false;
+  importUrl.value = '';
+  importMsg.textContent = '';
+  if (!tokenId) return;
+  selected = [tokenId];
+  renderTokens();
+  renderPanel();
 });
 
 const rosterSearch = document.getElementById('roster-search');
@@ -515,6 +777,12 @@ rosterSearch.addEventListener('keydown', (event) => {
   if (!first) return;
   event.preventDefault();
   first.click();
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !armed) return;
+  event.preventDefault();
+  disarm();
 });
 
 drawGrid();

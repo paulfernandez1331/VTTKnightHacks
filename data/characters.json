@@ -4,6 +4,7 @@
     "foundryId": "AkraLv0100000000",
     "name": "Akra (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/akra.yml",
     "size": "medium",
@@ -20,6 +21,14 @@
       "int": 14,
       "wis": 16,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
     },
     "resist": [
       "cold"
@@ -46,7 +55,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 9,
@@ -79,22 +91,31 @@
       {
         "name": "Breath Weapon (Cone)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Breath Weapon (Line)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Guiding Bolt",
@@ -156,6 +177,7 @@
     "foundryId": "AothLv0100000000",
     "name": "Aoth (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/aoth.yml",
     "size": "medium",
@@ -172,6 +194,14 @@
       "int": 12,
       "wis": 17,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -213,15 +243,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -234,12 +271,16 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Thunderwave",
         "img": "icons/magic/sonic/explosion-shock-wave-teal.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 13,
@@ -249,7 +290,12 @@
             "dice": "2d8",
             "type": "thunder"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Hurl Fire",
@@ -278,7 +324,12 @@
         "saveAbility": "dex",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Animal Friendship",
@@ -291,7 +342,13 @@
         "saveAbility": "wis",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "beast"
+        ],
+        "conditions": [
+          "charmed"
+        ]
       }
     ],
     "class": "Druid 1",
@@ -340,6 +397,7 @@
     "foundryId": "BeiroLv010000000",
     "name": "Beiro (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/beiro.yml",
     "size": "medium",
@@ -357,6 +415,14 @@
       "wis": 8,
       "cha": 17
     },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -371,7 +437,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -409,7 +475,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -422,7 +491,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Vicious Mockery",
@@ -479,12 +553,16 @@
       {
         "name": "Color Spray",
         "img": "icons/magic/light/hand-sparks-smoke-green.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Charm Person",
@@ -497,7 +575,13 @@
         "saveAbility": "wis",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "humanoid"
+        ],
+        "conditions": [
+          "charmed"
+        ]
       }
     ],
     "class": "Bard 1",
@@ -538,6 +622,7 @@
     "foundryId": "KruskLv010000000",
     "name": "Krusk (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/krusk.yml",
     "size": "medium",
@@ -554,6 +639,14 @@
       "int": 10,
       "wis": 12,
       "cha": 14
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
     },
     "resist": [],
     "immune": [],
@@ -584,7 +677,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -599,7 +692,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 9,
@@ -627,7 +723,7 @@
         ]
       },
       {
-        "name": "Damage",
+        "name": "Searing Smite",
         "img": "icons/weapons/hammers/hammer-double-glowing-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -675,6 +771,7 @@
     "foundryId": "MerricLv01000000",
     "name": "Merric (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/merric.yml",
     "size": "medium",
@@ -691,6 +788,14 @@
       "int": 8,
       "wis": 10,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -722,7 +827,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -738,15 +843,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -759,7 +871,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Unarmed Strike",
@@ -777,7 +894,11 @@
         "saveAbility": "str",
         "saveDc": 13,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       }
     ],
     "class": "Barbarian 1",
@@ -818,6 +939,7 @@
     "foundryId": "MorthosLv0100000",
     "name": "Morthos (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/morthos.yml",
     "size": "medium",
@@ -835,6 +957,14 @@
       "wis": 8,
       "cha": 17
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [
       "fire"
     ],
@@ -851,7 +981,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -891,7 +1021,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -908,15 +1038,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -929,7 +1066,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -939,7 +1081,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack (2)",
@@ -1000,7 +1147,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -1010,7 +1156,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       }
     ],
     "class": "Sorcerer 1",
@@ -1043,6 +1194,7 @@
     "foundryId": "PerrinLv01000000",
     "name": "Perrin (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/perrin.yml",
     "size": "small",
@@ -1059,6 +1211,14 @@
       "int": 12,
       "wis": 14,
       "cha": 10
+    },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -1085,7 +1245,11 @@
         "saveAbility": "str",
         "saveDc": 11,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Spear",
@@ -1094,7 +1258,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -1114,7 +1278,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -1135,7 +1299,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -1150,15 +1314,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -1171,7 +1342,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -1230,6 +1406,7 @@
     "foundryId": "QuillatheLv01000",
     "name": "Quillathe (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/quillathe.yml",
     "size": "medium",
@@ -1247,6 +1424,14 @@
       "wis": 14,
       "cha": 12
     },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -1257,12 +1442,18 @@
       {
         "name": "Net",
         "img": "icons/tools/fishing/net-simple-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 15,
+          "long": 15
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "restrained"
+        ]
       },
       {
         "name": "Scimitar",
@@ -1320,15 +1511,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -1341,15 +1539,17 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Bonus Mark Damage",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -1363,10 +1563,7 @@
       {
         "name": "Bonus Mark Damage (2)",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -1405,6 +1602,9 @@
             "dice": "1d6",
             "type": "piercing"
           }
+        ],
+        "conditions": [
+          "restrained"
         ]
       },
       {
@@ -1464,6 +1664,7 @@
     "foundryId": "RandalLv01000000",
     "name": "Randal (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/randal.yml",
     "size": "medium",
@@ -1481,6 +1682,14 @@
       "wis": 13,
       "cha": 12
     },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -1495,7 +1704,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -1564,7 +1773,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -1579,15 +1788,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 9,
@@ -1600,7 +1816,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -1610,7 +1831,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       }
     ],
     "class": "Fighter 1",
@@ -1659,6 +1885,7 @@
     "foundryId": "RiswynnLv0100000",
     "name": "Riswynn (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/riswynn.yml",
     "size": "medium",
@@ -1676,6 +1903,14 @@
       "wis": 12,
       "cha": 8
     },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": true,
+      "wis": false,
+      "cha": false
+    },
     "resist": [
       "poison"
     ],
@@ -1692,7 +1927,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -1745,12 +1980,23 @@
       {
         "name": "Spill Ball Bearings",
         "img": "icons/weapons/ammunition/shot-round-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        },
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Sneak Attack",
@@ -1763,7 +2009,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -1776,7 +2025,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       }
     ],
     "class": "Rogue 1",
@@ -1821,6 +2075,7 @@
     "foundryId": "SefrisLv01000000",
     "name": "Sefris (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/sefris.yml",
     "size": "medium",
@@ -1838,6 +2093,14 @@
       "wis": 8,
       "cha": 15
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -1852,7 +2115,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -1884,7 +2147,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -1897,7 +2163,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Eldritch Blast",
@@ -1918,10 +2189,7 @@
       {
         "name": "Bonus Hex Damage",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -1943,7 +2211,13 @@
         "saveAbility": "wis",
         "saveDc": 12,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "humanoid"
+        ],
+        "conditions": [
+          "charmed"
+        ]
       }
     ],
     "class": "Warlock 1",
@@ -1988,6 +2262,7 @@
     "foundryId": "ZannaLv010000000",
     "name": "Zanna (1)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-1/zanna.yml",
     "size": "small",
@@ -2005,6 +2280,14 @@
       "wis": 12,
       "cha": 10
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -2015,7 +2298,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 12,
@@ -2028,7 +2314,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack",
@@ -2049,7 +2340,6 @@
       {
         "name": "Thunderwave",
         "img": "icons/magic/sonic/explosion-shock-wave-teal.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 13,
@@ -2059,7 +2349,12 @@
             "dice": "2d8",
             "type": "thunder"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Ray of Frost",
@@ -2114,7 +2409,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -2139,7 +2434,15 @@
         "saveAbility": "wis",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Magic Missile",
@@ -2193,6 +2496,7 @@
     "foundryId": "AkraLv1100000000",
     "name": "Akra (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/akra.yml",
     "size": "medium",
@@ -2209,6 +2513,14 @@
       "int": 14,
       "wis": 20,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
     },
     "resist": [
       "cold"
@@ -2235,7 +2547,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 11,
@@ -2263,7 +2578,12 @@
             "dice": "3d8",
             "type": "necrotic"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -2286,22 +2606,39 @@
       {
         "name": "Divine Spark: Save",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Turn Undead",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Revivify",
@@ -2314,22 +2651,31 @@
       {
         "name": "Breath Weapon (Cone)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Breath Weapon (Line)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Blessed Strikes: Potent Spellcasting",
@@ -2342,12 +2688,23 @@
       {
         "name": "Channel Divinity: Turn Undead",
         "img": "icons/magic/fire/flame-burning-skeleton-explosion.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Dismissal",
@@ -2357,7 +2714,14 @@
         "saveAbility": "cha",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "celestial",
+          "elemental",
+          "fey",
+          "fiend",
+          "undead"
+        ]
       },
       {
         "name": "Guiding Bolt",
@@ -2386,7 +2750,10 @@
         "saveAbility": "cha",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Command",
@@ -2412,7 +2779,11 @@
         "saveAbility": "con",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded",
+          "deafened"
+        ]
       }
     ],
     "class": "Cleric 11 (Life Domain)",
@@ -2485,6 +2856,7 @@
     "foundryId": "AothLv1100000000",
     "name": "Aoth (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/aoth.yml",
     "size": "medium",
@@ -2501,6 +2873,14 @@
       "int": 12,
       "wis": 20,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -2542,7 +2922,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -2555,17 +2938,30 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Land's Aid",
         "img": "icons/magic/nature/root-vines-grow-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Starry Wisp",
@@ -2627,7 +3023,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Sleep",
@@ -2640,7 +3041,15 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Polymorph",
@@ -2658,7 +3067,6 @@
       {
         "name": "Lightning Bolt",
         "img": "icons/magic/lightning/bolt-strike-blue.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -2668,7 +3076,13 @@
             "dice": "8d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 100,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Moonbeam",
@@ -2686,12 +3100,16 @@
             "dice": "2d10",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
-        "name": "Cast",
+        "name": "Conjure Woodland Beings",
         "img": "icons/magic/nature/instrument-recorder-leaves.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 17,
@@ -2701,7 +3119,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "self"
+        }
       },
       {
         "name": "Emanation Save",
@@ -2719,7 +3142,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "point"
+        }
       }
     ],
     "class": "Druid 11 (Circle of the Land)",
@@ -2804,6 +3232,7 @@
     "foundryId": "BeiroLv110000000",
     "name": "Beiro (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/beiro.yml",
     "size": "medium",
@@ -2821,6 +3250,14 @@
       "wis": 8,
       "cha": 20
     },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -2835,7 +3272,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -2873,7 +3310,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -2886,7 +3326,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Vicious Mockery",
@@ -2954,7 +3399,12 @@
             "dice": "3d8",
             "type": "necrotic"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Slow",
@@ -2967,7 +3417,12 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Suggestion",
@@ -2980,7 +3435,10 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -2993,7 +3451,11 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Mass Suggestion",
@@ -3006,7 +3468,10 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Polymorph",
@@ -3049,7 +3514,16 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "charmed",
+          "incapacitated"
+        ]
       },
       {
         "name": "Dimension Door",
@@ -3079,7 +3553,12 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        }
       },
       {
         "name": "Command",
@@ -3110,12 +3589,19 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       }
     ],
     "class": "Bard 11 (College of Lore)",
@@ -3188,6 +3674,7 @@
     "foundryId": "KruskLv110000000",
     "name": "Krusk (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/krusk.yml",
     "size": "medium",
@@ -3205,6 +3692,14 @@
       "wis": 12,
       "cha": 15
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -3219,7 +3714,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -3249,12 +3744,18 @@
       {
         "name": "Abjure Foes",
         "img": "icons/magic/holy/projectiles-blades-salvo-yellow.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Javelin of Lightning",
@@ -3292,12 +3793,21 @@
             "dice": "4d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 120,
+          "origin": "point",
+          "width": 5
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 11,
@@ -3320,7 +3830,12 @@
         "saveAbility": "cha",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Revivify",
@@ -3374,7 +3889,7 @@
         ]
       },
       {
-        "name": "Damage",
+        "name": "Searing Smite",
         "img": "icons/weapons/hammers/hammer-double-glowing-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -3390,7 +3905,10 @@
       {
         "name": "Throw (2)",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 11,
@@ -3403,7 +3921,7 @@
         ]
       },
       {
-        "name": "Cast",
+        "name": "Divine Smite",
         "img": "icons/skills/melee/strike-flail-destructive-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -3517,6 +4035,7 @@
     "foundryId": "MerricLv11000000",
     "name": "Merric (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/merric.yml",
     "size": "medium",
@@ -3533,6 +4052,14 @@
       "int": 8,
       "wis": 10,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -3552,7 +4079,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -3569,7 +4099,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -3608,7 +4141,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d8",
@@ -3624,15 +4157,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -3645,7 +4185,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Javelin",
@@ -3654,7 +4199,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -3682,7 +4227,11 @@
         "saveAbility": "str",
         "saveDc": 17,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Enlarge/Reduce",
@@ -3788,6 +4337,7 @@
     "foundryId": "MorthosLv1100000",
     "name": "Morthos (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/morthos.yml",
     "size": "medium",
@@ -3804,6 +4354,14 @@
       "int": 12,
       "wis": 8,
       "cha": 20
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": true
     },
     "resist": [
       "fire",
@@ -3822,7 +4380,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -3862,7 +4420,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -3919,15 +4477,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -3940,7 +4505,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -3950,7 +4520,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Acid Splash",
@@ -3968,7 +4543,12 @@
             "dice": "1d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack (2)",
@@ -4026,7 +4606,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Slow",
@@ -4039,7 +4624,12 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Poison Spray",
@@ -4136,7 +4726,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Hellish Rebuke",
@@ -4159,12 +4754,19 @@
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Grease",
@@ -4177,7 +4779,12 @@
         "saveAbility": "dex",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Counterspell",
@@ -4203,7 +4810,10 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Banishment",
@@ -4216,12 +4826,14 @@
         "saveAbility": "cha",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Exhale",
         "img": "icons/creatures/abilities/dragon-fire-breath-orange.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -4231,7 +4843,12 @@
             "dice": "3d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Command",
@@ -4265,7 +4882,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -4275,7 +4891,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Attack: Claws",
@@ -4391,6 +5012,7 @@
     "foundryId": "PerrinLv11000000",
     "name": "Perrin (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/perrin.yml",
     "size": "small",
@@ -4407,6 +5029,14 @@
       "int": 12,
       "wis": 14,
       "cha": 10
+    },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -4433,7 +5063,11 @@
         "saveAbility": "str",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Push",
@@ -4443,7 +5077,10 @@
         "saveAbility": "str",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Topple",
@@ -4453,7 +5090,10 @@
         "saveAbility": "dex",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Javelin",
@@ -4462,7 +5102,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -4477,15 +5117,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -4498,7 +5145,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -4544,7 +5196,10 @@
         "saveAbility": "con",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "stunned"
+        ]
       },
       {
         "name": "Fireball",
@@ -4562,7 +5217,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       }
     ],
     "class": "Monk 11 (Warrior of the Open Hand)",
@@ -4663,6 +5323,7 @@
     "foundryId": "QuillatheLv11000",
     "name": "Quillathe (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/quillathe.yml",
     "size": "medium",
@@ -4680,6 +5341,14 @@
       "wis": 15,
       "cha": 12
     },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -4690,12 +5359,18 @@
       {
         "name": "Net",
         "img": "icons/tools/fishing/net-simple-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 15,
+          "long": 15
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 17,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "restrained"
+        ]
       },
       {
         "name": "Scimitar",
@@ -4753,15 +5428,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -4774,7 +5456,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Revivify",
@@ -4799,7 +5486,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Colossus Slayer",
@@ -4818,7 +5510,10 @@
       {
         "name": "Superior Hunter's Prey",
         "img": "icons/skills/ranged/arrows-flying-triple-blue.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "spell",
         "autoHit": true,
         "damage": []
@@ -4826,10 +5521,7 @@
       {
         "name": "Bonus Mark Damage",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -4843,10 +5535,7 @@
       {
         "name": "Bonus Mark Damage (2)",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -4888,6 +5577,9 @@
             "dice": "1d6",
             "type": "piercing"
           }
+        ],
+        "conditions": [
+          "restrained"
         ]
       },
       {
@@ -4991,6 +5683,7 @@
     "foundryId": "RandalLv11000000",
     "name": "Randal (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/randal.yml",
     "size": "medium",
@@ -5007,6 +5700,14 @@
       "int": 10,
       "wis": 13,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -5033,7 +5734,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -5048,7 +5749,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [],
         "kind": "weapon",
         "properties": [
@@ -5060,7 +5764,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [],
         "kind": "weapon",
         "properties": [
@@ -5072,15 +5779,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 11,
@@ -5093,7 +5807,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -5103,7 +5822,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       }
     ],
     "class": "Fighter 11 (Champion)",
@@ -5200,6 +5924,7 @@
     "foundryId": "RiswynnLv1100000",
     "name": "Riswynn (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/riswynn.yml",
     "size": "medium",
@@ -5216,6 +5941,14 @@
       "int": 17,
       "wis": 12,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": true,
+      "wis": false,
+      "cha": false
     },
     "resist": [
       "poison"
@@ -5241,7 +5974,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -5294,12 +6027,23 @@
       {
         "name": "Spill Ball Bearings",
         "img": "icons/weapons/ammunition/shot-round-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        },
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Poison",
@@ -5309,7 +6053,11 @@
         "saveAbility": "con",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Trip",
@@ -5319,7 +6067,11 @@
         "saveAbility": "dex",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Cunning Sneak Attack",
@@ -5332,7 +6084,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 17,
@@ -5345,7 +6100,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Magic Missile",
@@ -5380,7 +6140,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Grease",
@@ -5393,37 +6158,62 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Second Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Third Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       }
     ],
     "class": "Rogue 11 (Thief)",
@@ -5508,6 +6298,7 @@
     "foundryId": "SefrisLv11000000",
     "name": "Sefris (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/sefris.yml",
     "size": "medium",
@@ -5525,6 +6316,14 @@
       "wis": 8,
       "cha": 18
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -5539,7 +6338,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -5571,7 +6370,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -5584,20 +6386,30 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Start of Turn Save",
         "img": "icons/magic/air/fog-gas-smoke-dense-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 16,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        },
+        "conditions": [
+          "poisoned"
+        ]
       },
       {
         "name": "Suggestion",
@@ -5610,7 +6422,10 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -5623,7 +6438,11 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Hideous Laughter (2)",
@@ -5636,7 +6455,11 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Create Wall",
@@ -5654,7 +6477,13 @@
             "dice": "5d8",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "wall",
+          "size": 60,
+          "origin": "point",
+          "width": 1
+        }
       },
       {
         "name": "Create Ring",
@@ -5672,7 +6501,12 @@
             "dice": "5d8",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Wall of Fire",
@@ -5723,7 +6557,12 @@
             "dice": "4d10",
             "type": "piercing"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Hypnotic Pattern",
@@ -5736,7 +6575,16 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "charmed",
+          "incapacitated"
+        ]
       },
       {
         "name": "Eldritch Blast (Repelling)",
@@ -5765,7 +6613,10 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Geas",
@@ -5783,15 +6634,15 @@
             "dice": "5d10",
             "type": "psychic"
           }
+        ],
+        "conditions": [
+          "charmed"
         ]
       },
       {
         "name": "Bonus Hex Damage",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -5805,10 +6656,7 @@
       {
         "name": "Bonus Hex Damage (2)",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -5835,17 +6683,29 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Contact Other Plane",
@@ -5890,7 +6750,13 @@
         "saveAbility": "wis",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "humanoid"
+        ],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Faerie Fire",
@@ -5903,7 +6769,12 @@
         "saveAbility": "dex",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Banishment",
@@ -5916,7 +6787,10 @@
         "saveAbility": "cha",
         "saveDc": 16,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Command",
@@ -5934,7 +6808,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -5944,7 +6817,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Bane",
@@ -5962,12 +6840,19 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       }
     ],
     "class": "Warlock 11 (Fiend Patron)",
@@ -6064,6 +6949,7 @@
     "foundryId": "ZannaLv110000000",
     "name": "Zanna (11)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-11/zanna.yml",
     "size": "small",
@@ -6080,6 +6966,14 @@
       "int": 20,
       "wis": 12,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -6099,7 +6993,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -6112,7 +7009,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack",
@@ -6146,7 +7048,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Shocking Grasp",
@@ -6164,7 +7071,6 @@
       {
         "name": "Thunderwave",
         "img": "icons/magic/sonic/explosion-shock-wave-teal.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 17,
@@ -6174,7 +7080,12 @@
             "dice": "2d8",
             "type": "thunder"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Slow",
@@ -6187,7 +7098,12 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Ray of Frost",
@@ -6242,7 +7158,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -6267,7 +7183,10 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Sleep",
@@ -6280,7 +7199,15 @@
         "saveAbility": "wis",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Secondhand and Picture",
@@ -6468,7 +7395,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Dimension Door",
@@ -6498,7 +7430,10 @@
         "saveAbility": "cha",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Enlarge/Reduce",
@@ -6532,7 +7467,6 @@
       {
         "name": "Geyser",
         "img": "icons/consumables/potions/potion-flask-corked-blue.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "str",
         "saveDc": 13,
@@ -6542,7 +7476,13 @@
             "dice": "1d4",
             "type": "bludgeoning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 1
+        }
       }
     ],
     "class": "Wizard 11 (Evoker)",
@@ -6603,6 +7543,7 @@
     "foundryId": "AkraLv1700000000",
     "name": "Akra (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/akra.yml",
     "size": "medium",
@@ -6619,6 +7560,14 @@
       "int": 14,
       "wis": 20,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
     },
     "resist": [
       "cold"
@@ -6645,7 +7594,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -6660,10 +7612,7 @@
       {
         "name": "Searing Light",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -6673,7 +7622,12 @@
             "dice": "6d12",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Fiend/Undead Save",
@@ -6683,7 +7637,15 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Emanation Save",
@@ -6701,7 +7663,12 @@
             "dice": "3d8",
             "type": "necrotic"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -6724,22 +7691,39 @@
       {
         "name": "Divine Spark: Save",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Turn Undead",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Revivify",
@@ -6752,22 +7736,31 @@
       {
         "name": "Breath Weapon (Cone)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Breath Weapon (Line)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Blessed Strikes: Potent Spellcasting",
@@ -6780,12 +7773,23 @@
       {
         "name": "Channel Divinity: Turn Undead",
         "img": "icons/magic/fire/flame-burning-skeleton-explosion.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Dismissal",
@@ -6795,7 +7799,14 @@
         "saveAbility": "cha",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "celestial",
+          "elemental",
+          "fey",
+          "fiend",
+          "undead"
+        ]
       },
       {
         "name": "Guiding Bolt",
@@ -6824,7 +7835,10 @@
         "saveAbility": "cha",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Command",
@@ -6850,7 +7864,11 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded",
+          "deafened"
+        ]
       }
     ],
     "class": "Cleric 17 (Life Domain)",
@@ -6931,6 +7949,7 @@
     "foundryId": "AothLv1700000000",
     "name": "Aoth (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/aoth.yml",
     "size": "medium",
@@ -6947,6 +7966,14 @@
       "int": 12,
       "wis": 20,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -6988,7 +8015,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -7001,17 +8031,30 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Land's Aid",
         "img": "icons/magic/nature/root-vines-grow-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Sunburst",
@@ -7029,6 +8072,14 @@
             "dice": "12d6",
             "type": "radiant"
           }
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 60,
+          "origin": "point"
+        },
+        "conditions": [
+          "blinded"
         ]
       },
       {
@@ -7091,7 +8142,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Sleep",
@@ -7104,7 +8160,15 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Reverse Gravity",
@@ -7117,7 +8181,12 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cylinder",
+          "size": 50,
+          "origin": "point"
+        }
       },
       {
         "name": "Polymorph",
@@ -7135,7 +8204,6 @@
       {
         "name": "Lightning Bolt",
         "img": "icons/magic/lightning/bolt-strike-blue.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -7145,7 +8213,13 @@
             "dice": "8d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 100,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Moonbeam",
@@ -7163,12 +8237,16 @@
             "dice": "2d10",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
-        "name": "Cast",
+        "name": "Conjure Woodland Beings",
         "img": "icons/magic/nature/instrument-recorder-leaves.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 19,
@@ -7178,7 +8256,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "self"
+        }
       },
       {
         "name": "Emanation Save",
@@ -7196,7 +8279,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "point"
+        }
       }
     ],
     "class": "Druid 17 (Circle of the Land)",
@@ -7289,6 +8377,7 @@
     "foundryId": "BeiroLv170000000",
     "name": "Beiro (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/beiro.yml",
     "size": "medium",
@@ -7306,6 +8395,14 @@
       "wis": 8,
       "cha": 20
     },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -7320,7 +8417,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -7358,7 +8455,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -7371,15 +8471,17 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Searing Light",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -7389,7 +8491,12 @@
             "dice": "6d12",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Vicious Mockery",
@@ -7446,7 +8553,15 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Starry Wisp",
@@ -7480,7 +8595,12 @@
             "dice": "3d8",
             "type": "necrotic"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Slow",
@@ -7493,7 +8613,12 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Suggestion",
@@ -7506,7 +8631,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -7519,7 +8647,11 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Mass Suggestion",
@@ -7532,7 +8664,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Polymorph",
@@ -7575,7 +8710,16 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "charmed",
+          "incapacitated"
+        ]
       },
       {
         "name": "Dimension Door",
@@ -7605,7 +8749,12 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        }
       },
       {
         "name": "Command",
@@ -7636,22 +8785,35 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Entangle",
         "img": "icons/sundries/survival/rope-wrapped-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "restrained"
+        ]
       }
     ],
     "class": "Bard 17 (College of Lore)",
@@ -7728,6 +8890,7 @@
     "foundryId": "KruskLv170000000",
     "name": "Krusk (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/krusk.yml",
     "size": "medium",
@@ -7745,6 +8908,14 @@
       "wis": 13,
       "cha": 18
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -7759,7 +8930,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -7774,12 +8945,18 @@
       {
         "name": "Abjure Foes",
         "img": "icons/magic/holy/projectiles-blades-salvo-yellow.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Javelin of Lightning",
@@ -7817,12 +8994,21 @@
             "dice": "4d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 120,
+          "origin": "point",
+          "width": 5
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -7845,7 +9031,12 @@
         "saveAbility": "cha",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Revivify",
@@ -7899,7 +9090,7 @@
         ]
       },
       {
-        "name": "Damage",
+        "name": "Searing Smite",
         "img": "icons/weapons/hammers/hammer-double-glowing-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -7945,12 +9136,20 @@
             "dice": "5d6",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Throw (2)",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -7980,7 +9179,7 @@
         ]
       },
       {
-        "name": "Cast",
+        "name": "Divine Smite",
         "img": "icons/skills/melee/strike-flail-destructive-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -8018,10 +9217,13 @@
         "saveAbility": "cha",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
-        "name": "Attack",
+        "name": "Dwarven Thrower",
         "img": "icons/weapons/hammers/hammer-double-engraved-gold.webp",
         "range": {
           "normal": 5,
@@ -8164,6 +9366,7 @@
     "foundryId": "MerricLv17000000",
     "name": "Merric (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/merric.yml",
     "size": "medium",
@@ -8180,6 +9383,14 @@
       "int": 8,
       "wis": 10,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -8199,7 +9410,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -8216,7 +9430,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -8255,7 +9472,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d8",
@@ -8271,25 +9488,39 @@
       {
         "name": "Intimidating Presence",
         "img": "icons/creatures/magical/construct-iron-stomping-yellow.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -8302,7 +9533,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Javelin",
@@ -8311,7 +9547,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -8339,7 +9575,11 @@
         "saveAbility": "str",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Enlarge/Reduce",
@@ -8355,7 +9595,7 @@
         "damage": []
       },
       {
-        "name": "Attack",
+        "name": "Dwarven Thrower",
         "img": "icons/weapons/hammers/hammer-double-engraved-gold.webp",
         "range": {
           "normal": 5,
@@ -8510,6 +9750,7 @@
     "foundryId": "MorthosLv1700000",
     "name": "Morthos (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/morthos.yml",
     "size": "medium",
@@ -8526,6 +9767,14 @@
       "int": 12,
       "wis": 8,
       "cha": 20
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": true
     },
     "resist": [
       "fire",
@@ -8544,7 +9793,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -8584,7 +9833,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -8641,15 +9890,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -8662,7 +9918,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -8672,7 +9933,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Acid Splash",
@@ -8690,7 +9956,12 @@
             "dice": "1d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack (2)",
@@ -8719,7 +9990,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Sorcerous Burst",
@@ -8761,7 +10035,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Slow",
@@ -8774,7 +10053,12 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Poison Spray",
@@ -8853,7 +10137,12 @@
             "dice": "7d10",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Chain Lightning",
@@ -8889,7 +10178,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Hellish Rebuke",
@@ -8912,12 +10206,19 @@
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Grease",
@@ -8930,7 +10231,12 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Dimension Door",
@@ -8973,7 +10279,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Banishment",
@@ -8986,12 +10295,14 @@
         "saveAbility": "cha",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Exhale",
         "img": "icons/creatures/abilities/dragon-fire-breath-orange.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -9001,7 +10312,12 @@
             "dice": "3d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Resilient Sphere",
@@ -9048,7 +10364,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -9058,7 +10373,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Attack: Claws",
@@ -9186,6 +10506,7 @@
     "foundryId": "PerrinLv17000000",
     "name": "Perrin (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/perrin.yml",
     "size": "small",
@@ -9202,6 +10523,14 @@
       "int": 12,
       "wis": 18,
       "cha": 10
+    },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -9228,7 +10557,11 @@
         "saveAbility": "str",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Push",
@@ -9238,7 +10571,10 @@
         "saveAbility": "str",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Topple",
@@ -9248,7 +10584,10 @@
         "saveAbility": "dex",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Javelin",
@@ -9257,7 +10596,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -9307,15 +10646,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -9328,7 +10674,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -9384,7 +10735,10 @@
         "saveAbility": "con",
         "saveDc": 18,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "stunned"
+        ]
       },
       {
         "name": "Fireball",
@@ -9402,7 +10756,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       }
     ],
     "class": "Monk 17 (Warrior of the Open Hand)",
@@ -9519,6 +10878,7 @@
     "foundryId": "QuillatheLv17000",
     "name": "Quillathe (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/quillathe.yml",
     "size": "medium",
@@ -9536,6 +10896,14 @@
       "wis": 19,
       "cha": 12
     },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -9546,12 +10914,18 @@
       {
         "name": "Net",
         "img": "icons/tools/fishing/net-simple-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 15,
+          "long": 15
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "restrained"
+        ]
       },
       {
         "name": "Shortsword",
@@ -9593,15 +10967,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -9614,7 +10995,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Revivify",
@@ -9639,7 +11025,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Colossus Slayer",
@@ -9658,7 +11049,10 @@
       {
         "name": "Superior Hunter's Prey",
         "img": "icons/skills/ranged/arrows-flying-triple-blue.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "spell",
         "autoHit": true,
         "damage": []
@@ -9666,10 +11060,7 @@
       {
         "name": "Bonus Mark Damage",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -9683,10 +11074,7 @@
       {
         "name": "Bonus Mark Damage (2)",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -9698,9 +11086,8 @@
         ]
       },
       {
-        "name": "Cast",
+        "name": "Conjure Woodland Beings",
         "img": "icons/magic/nature/instrument-recorder-leaves.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 18,
@@ -9710,7 +11097,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "self"
+        }
       },
       {
         "name": "Emanation Save",
@@ -9728,7 +11120,12 @@
             "dice": "5d8",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Conjure Animals",
@@ -9761,6 +11158,9 @@
             "dice": "1d6",
             "type": "piercing"
           }
+        ],
+        "conditions": [
+          "restrained"
         ]
       },
       {
@@ -9896,6 +11296,7 @@
     "foundryId": "RandalLv17000000",
     "name": "Randal (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/randal.yml",
     "size": "medium",
@@ -9912,6 +11313,14 @@
       "int": 11,
       "wis": 16,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -9938,7 +11347,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -9953,7 +11362,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [],
         "kind": "weapon",
         "properties": [
@@ -9965,7 +11377,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [],
         "kind": "weapon",
         "properties": [
@@ -9981,7 +11396,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d8",
@@ -9997,15 +11412,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -10018,7 +11440,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -10028,7 +11455,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Fireball",
@@ -10046,7 +11478,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       }
     ],
     "class": "Fighter 17 (Champion)",
@@ -10151,6 +11588,7 @@
     "foundryId": "RiswynnLv1700000",
     "name": "Riswynn (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/riswynn.yml",
     "size": "medium",
@@ -10167,6 +11605,14 @@
       "int": 20,
       "wis": 12,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": true
     },
     "resist": [
       "poison"
@@ -10192,7 +11638,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -10245,12 +11691,23 @@
       {
         "name": "Spill Ball Bearings",
         "img": "icons/weapons/ammunition/shot-round-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        },
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Poison",
@@ -10260,7 +11717,11 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Trip",
@@ -10270,7 +11731,11 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Cunning Sneak Attack",
@@ -10288,7 +11753,11 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "unconscious",
+          "blinded"
+        ]
       },
       {
         "name": "Knock Out",
@@ -10298,7 +11767,11 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "unconscious",
+          "blinded"
+        ]
       },
       {
         "name": "Obscure",
@@ -10308,12 +11781,19 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "unconscious",
+          "blinded"
+        ]
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -10326,7 +11806,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Web",
@@ -10344,7 +11829,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Suggestion",
@@ -10357,7 +11847,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Revivify",
@@ -10370,7 +11863,10 @@
       {
         "name": "Throw Bead",
         "img": "icons/commodities/gems/pearl-purple-dark.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -10380,7 +11876,12 @@
             "dice": "5d4",
             "type": "force"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Magic Missile",
@@ -10432,7 +11933,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Grease",
@@ -10445,7 +11951,12 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Dimension Door",
@@ -10501,32 +12012,53 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        }
       },
       {
         "name": "Second Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Third Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Throw Bands",
         "img": "icons/commodities/metal/clasp-steel-braid.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "damage": [],
         "kind": "weapon",
         "properties": [
@@ -10536,17 +12068,23 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Geyser",
         "img": "icons/consumables/potions/potion-flask-corked-blue.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "str",
         "saveDc": 13,
@@ -10556,7 +12094,13 @@
             "dice": "1d4",
             "type": "bludgeoning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 1
+        }
       }
     ],
     "class": "Rogue 17 (Thief)",
@@ -10657,6 +12201,7 @@
     "foundryId": "SefrisLv17000000",
     "name": "Sefris (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/sefris.yml",
     "size": "medium",
@@ -10674,6 +12219,14 @@
       "wis": 8,
       "cha": 20
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -10688,7 +12241,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -10735,7 +12288,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 16,
@@ -10748,7 +12304,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "True Polymorph",
@@ -10766,15 +12327,20 @@
       {
         "name": "Start of Turn Save",
         "img": "icons/magic/air/fog-gas-smoke-dense-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        },
+        "conditions": [
+          "poisoned"
+        ]
       },
       {
         "name": "Dominate Monster",
@@ -10787,7 +12353,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Telekinesis",
@@ -10813,7 +12382,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -10826,7 +12398,11 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Hideous Laughter (2)",
@@ -10839,7 +12415,11 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Create Wall",
@@ -10857,7 +12437,13 @@
             "dice": "5d8",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "wall",
+          "size": 60,
+          "origin": "point",
+          "width": 1
+        }
       },
       {
         "name": "Create Ring",
@@ -10875,7 +12461,12 @@
             "dice": "5d8",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Wall of Fire",
@@ -11016,7 +12607,12 @@
             "dice": "4d10",
             "type": "piercing"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Hypnotic Pattern",
@@ -11029,7 +12625,16 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "charmed",
+          "incapacitated"
+        ]
       },
       {
         "name": "Eldritch Blast (Repelling)",
@@ -11058,7 +12663,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Geas",
@@ -11076,15 +12684,15 @@
             "dice": "5d10",
             "type": "psychic"
           }
+        ],
+        "conditions": [
+          "charmed"
         ]
       },
       {
         "name": "Bonus Hex Damage",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -11098,10 +12706,7 @@
       {
         "name": "Bonus Hex Damage (2)",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -11128,7 +12733,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Fireball (2)",
@@ -11146,17 +12756,29 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Contact Other Plane",
@@ -11201,7 +12823,13 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "humanoid"
+        ],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Faerie Fire",
@@ -11214,7 +12842,12 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Banishment",
@@ -11227,7 +12860,10 @@
         "saveAbility": "cha",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Command",
@@ -11245,7 +12881,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -11255,7 +12890,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Bane",
@@ -11273,12 +12913,19 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       }
     ],
     "class": "Warlock 17 (Fiend Patron)",
@@ -11387,6 +13034,7 @@
     "foundryId": "ZannaLv170000000",
     "name": "Zanna (17)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-17/zanna.yml",
     "size": "small",
@@ -11403,6 +13051,14 @@
       "int": 20,
       "wis": 12,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -11438,7 +13094,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 18,
@@ -11451,7 +13110,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Sunburst",
@@ -11469,6 +13133,14 @@
             "dice": "12d6",
             "type": "radiant"
           }
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 60,
+          "origin": "point"
+        },
+        "conditions": [
+          "blinded"
         ]
       },
       {
@@ -11498,15 +13170,16 @@
         "saveAbility": "con",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded",
+          "restrained"
+        ]
       },
       {
         "name": "Traversal Save",
         "img": "icons/magic/defensive/barrier-shield-dome-blue-purple.webp",
-        "range": {
-          "normal": 60,
-          "long": 60
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -11516,6 +13189,10 @@
             "dice": "12d6",
             "type": "acid"
           }
+        ],
+        "conditions": [
+          "blinded",
+          "restrained"
         ]
       },
       {
@@ -11564,7 +13241,12 @@
         "saveAbility": "dex",
         "saveDc": 17,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        }
       },
       {
         "name": "Web",
@@ -11582,7 +13264,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Shocking Grasp",
@@ -11614,12 +13301,16 @@
             "dice": "20d6",
             "type": "bludgeoning"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Thunderwave",
         "img": "icons/magic/sonic/explosion-shock-wave-teal.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 19,
@@ -11629,7 +13320,12 @@
             "dice": "2d8",
             "type": "thunder"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Slow",
@@ -11642,7 +13338,12 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Ray of Frost",
@@ -11667,7 +13368,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -11692,7 +13393,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Sleep",
@@ -11705,7 +13409,15 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Secondhand and Picture",
@@ -11808,7 +13520,12 @@
         "saveAbility": "dex",
         "saveDc": 19,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cylinder",
+          "size": 50,
+          "origin": "point"
+        }
       },
       {
         "name": "Scorching Ray",
@@ -11889,7 +13606,6 @@
       {
         "name": "Lightning Bolt",
         "img": "icons/magic/lightning/bolt-strike-blue.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 19,
@@ -11899,7 +13615,13 @@
             "dice": "8d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 100,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Fire Bolt",
@@ -11946,7 +13668,10 @@
         "saveAbility": "wis",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Chain Lightning",
@@ -11982,7 +13707,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Fireball (2)",
@@ -12000,7 +13730,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Levitate",
@@ -12035,7 +13770,6 @@
       {
         "name": "Cone of Cold",
         "img": "icons/magic/air/wind-tornado-wall-blue.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 19,
@@ -12045,7 +13779,12 @@
             "dice": "8d8",
             "type": "cold"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 60,
+          "origin": "self"
+        }
       },
       {
         "name": "Banishment",
@@ -12058,7 +13797,10 @@
         "saveAbility": "cha",
         "saveDc": 19,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Enlarge/Reduce",
@@ -12092,7 +13834,6 @@
       {
         "name": "Geyser",
         "img": "icons/consumables/potions/potion-flask-corked-blue.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "str",
         "saveDc": 13,
@@ -12102,7 +13843,13 @@
             "dice": "1d4",
             "type": "bludgeoning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 1
+        }
       }
     ],
     "class": "Wizard 17 (Evoker)",
@@ -12167,6 +13914,7 @@
     "foundryId": "AkraLv0500000000",
     "name": "Akra (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/akra.yml",
     "size": "medium",
@@ -12183,6 +13931,14 @@
       "int": 14,
       "wis": 18,
       "cha": 10
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
     },
     "resist": [
       "cold"
@@ -12209,7 +13965,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
@@ -12237,7 +13996,12 @@
             "dice": "3d8",
             "type": "necrotic"
           }
-        ]
+        ],
+        "area": {
+          "type": "radius",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -12260,22 +14024,39 @@
       {
         "name": "Divine Spark: Save",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Turn Undead",
         "img": "icons/magic/symbols/star-rising-purple.webp",
-        "reach": 5,
+        "range": {
+          "normal": 30,
+          "long": 30
+        },
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Revivify",
@@ -12288,32 +14069,52 @@
       {
         "name": "Breath Weapon (Cone)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Breath Weapon (Line)",
         "img": "icons/creatures/reptiles/lizard-mouth-glowing-red.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "line",
+          "size": 30,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Channel Divinity: Turn Undead",
         "img": "icons/magic/fire/flame-burning-skeleton-explosion.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "targets": [
+          "undead"
+        ],
+        "conditions": [
+          "frightened",
+          "incapacitated"
+        ]
       },
       {
         "name": "Guiding Bolt",
@@ -12355,7 +14156,11 @@
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded",
+          "deafened"
+        ]
       }
     ],
     "class": "Cleric 5 (Life Domain)",
@@ -12412,6 +14217,7 @@
     "foundryId": "AothLv0500000000",
     "name": "Aoth (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/aoth.yml",
     "size": "medium",
@@ -12428,6 +14234,14 @@
       "int": 12,
       "wis": 19,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -12469,15 +14283,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -12490,17 +14311,30 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Land's Aid",
         "img": "icons/magic/nature/root-vines-grow-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Starry Wisp",
@@ -12562,7 +14396,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Sleep",
@@ -12575,12 +14414,19 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Lightning Bolt",
         "img": "icons/magic/lightning/bolt-strike-blue.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -12590,7 +14436,13 @@
             "dice": "8d6",
             "type": "lightning"
           }
-        ]
+        ],
+        "area": {
+          "type": "line",
+          "size": 100,
+          "origin": "self",
+          "width": 5
+        }
       },
       {
         "name": "Moonbeam",
@@ -12608,7 +14460,12 @@
             "dice": "2d10",
             "type": "radiant"
           }
-        ]
+        ],
+        "area": {
+          "type": "cylinder",
+          "size": 5,
+          "origin": "point"
+        }
       }
     ],
     "class": "Druid 5 (Circle of the Land)",
@@ -12677,6 +14534,7 @@
     "foundryId": "BeiroLv050000000",
     "name": "Beiro (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/beiro.yml",
     "size": "medium",
@@ -12694,6 +14552,14 @@
       "wis": 8,
       "cha": 19
     },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -12708,7 +14574,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -12746,7 +14612,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -12759,7 +14628,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Vicious Mockery",
@@ -12822,7 +14696,10 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -12835,7 +14712,11 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Hypnotic Pattern",
@@ -12848,7 +14729,16 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 30,
+          "origin": "point"
+        },
+        "conditions": [
+          "charmed",
+          "incapacitated"
+        ]
       },
       {
         "name": "Probe Deeper",
@@ -12861,7 +14751,12 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "point"
+        }
       },
       {
         "name": "Command",
@@ -12892,12 +14787,19 @@
       {
         "name": "Play Pipes",
         "img": "icons/tools/instruments/flute-simple-wood.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "radius",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       }
     ],
     "class": "Bard 5 (College of Lore)",
@@ -12958,6 +14860,7 @@
     "foundryId": "KruskLv050000000",
     "name": "Krusk (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/krusk.yml",
     "size": "medium",
@@ -12975,6 +14878,14 @@
       "wis": 12,
       "cha": 14
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -12989,7 +14900,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -13019,7 +14930,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
@@ -13042,7 +14956,12 @@
         "saveAbility": "cha",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 15,
+          "origin": "point"
+        }
       },
       {
         "name": "Shining Smite",
@@ -13074,7 +14993,7 @@
         ]
       },
       {
-        "name": "Damage",
+        "name": "Searing Smite",
         "img": "icons/weapons/hammers/hammer-double-glowing-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -13090,7 +15009,10 @@
       {
         "name": "Throw (2)",
         "img": "icons/consumables/potions/bottle-round-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
@@ -13103,7 +15025,7 @@
         ]
       },
       {
-        "name": "Cast",
+        "name": "Divine Smite",
         "img": "icons/skills/melee/strike-flail-destructive-yellow.webp",
         "reach": 5,
         "kind": "spell",
@@ -13197,6 +15119,7 @@
     "foundryId": "MerricLv05000000",
     "name": "Merric (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/merric.yml",
     "size": "medium",
@@ -13213,6 +15136,14 @@
       "int": 8,
       "wis": 10,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -13232,7 +15163,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -13249,7 +15183,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -13266,15 +15203,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -13287,7 +15231,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Javelin",
@@ -13296,7 +15245,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -13324,7 +15273,11 @@
         "saveAbility": "str",
         "saveDc": 15,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       }
     ],
     "class": "Barbarian 5 (Path of the Berserker)",
@@ -13393,6 +15346,7 @@
     "foundryId": "MorthosLv0500000",
     "name": "Morthos (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/morthos.yml",
     "size": "medium",
@@ -13410,6 +15364,14 @@
       "wis": 8,
       "cha": 19
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": true
+    },
     "resist": [
       "fire"
     ],
@@ -13426,7 +15388,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d6",
@@ -13466,7 +15428,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -13483,15 +15445,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -13504,7 +15473,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -13514,7 +15488,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Acid Splash",
@@ -13532,7 +15511,12 @@
             "dice": "1d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack (2)",
@@ -13590,7 +15574,12 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Scorching Ray",
@@ -13640,7 +15629,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Hellish Rebuke",
@@ -13663,12 +15657,19 @@
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Grease",
@@ -13681,7 +15682,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        }
       },
       {
         "name": "Counterspell",
@@ -13699,7 +15705,6 @@
       {
         "name": "Exhale",
         "img": "icons/creatures/abilities/dragon-fire-breath-orange.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -13709,7 +15714,12 @@
             "dice": "3d6",
             "type": "acid"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Command",
@@ -13743,7 +15753,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -13753,7 +15762,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Attack: Claws",
@@ -13853,6 +15867,7 @@
     "foundryId": "PerrinLv05000000",
     "name": "Perrin (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/perrin.yml",
     "size": "small",
@@ -13869,6 +15884,14 @@
       "int": 12,
       "wis": 14,
       "cha": 10
+    },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -13895,7 +15918,11 @@
         "saveAbility": "str",
         "saveDc": 12,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "grappled",
+          "prone"
+        ]
       },
       {
         "name": "Push",
@@ -13905,7 +15932,10 @@
         "saveAbility": "str",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Topple",
@@ -13915,7 +15945,10 @@
         "saveAbility": "dex",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Javelin",
@@ -13924,7 +15957,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -13939,15 +15972,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -13960,7 +16000,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Sacred Flame",
@@ -13998,7 +16043,10 @@
         "saveAbility": "con",
         "saveDc": 13,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "stunned"
+        ]
       }
     ],
     "class": "Monk 5 (Warrior of the Open Hand)",
@@ -14075,6 +16123,7 @@
     "foundryId": "QuillatheLv05000",
     "name": "Quillathe (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/quillathe.yml",
     "size": "medium",
@@ -14092,6 +16141,14 @@
       "wis": 14,
       "cha": 12
     },
+    "saves": {
+      "str": true,
+      "dex": true,
+      "con": false,
+      "int": false,
+      "wis": false,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -14102,12 +16159,18 @@
       {
         "name": "Net",
         "img": "icons/tools/fishing/net-simple-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 15,
+          "long": 15
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "restrained"
+        ]
       },
       {
         "name": "Scimitar",
@@ -14165,15 +16228,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -14186,7 +16256,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spike Growth",
@@ -14203,7 +16278,12 @@
             "type": "piercing",
             "darts": 1
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Colossus Slayer",
@@ -14222,10 +16302,7 @@
       {
         "name": "Bonus Mark Damage",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -14239,10 +16316,7 @@
       {
         "name": "Bonus Mark Damage (2)",
         "img": "icons/skills/targeting/crosshair-scope-sniper-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -14266,6 +16340,9 @@
             "dice": "1d6",
             "type": "piercing"
           }
+        ],
+        "conditions": [
+          "restrained"
         ]
       },
       {
@@ -14349,6 +16426,7 @@
     "foundryId": "RandalLv05000000",
     "name": "Randal (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/randal.yml",
     "size": "medium",
@@ -14365,6 +16443,14 @@
       "int": 10,
       "wis": 13,
       "cha": 12
+    },
+    "saves": {
+      "str": true,
+      "dex": false,
+      "con": true,
+      "int": false,
+      "wis": false,
+      "cha": false
     },
     "resist": [],
     "immune": [],
@@ -14396,7 +16482,7 @@
           "normal": 30,
           "long": 120
         },
-        "reach": 5,
+        "reach": 30,
         "damage": [
           {
             "dice": "1d6",
@@ -14411,7 +16497,10 @@
       {
         "name": "Halberd",
         "img": "icons/weapons/polearms/halberd-engraved-black.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -14428,7 +16517,10 @@
       {
         "name": "Pike",
         "img": "icons/weapons/polearms/spear-hooked-spike.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "damage": [
           {
             "dice": "1d10",
@@ -14445,15 +16537,22 @@
       {
         "name": "Torch",
         "img": "icons/sundries/lights/torch-brown-lit.webp",
-        "reach": 5,
         "damage": [],
         "kind": "weapon",
-        "properties": []
+        "properties": [],
+        "area": {
+          "type": "radius",
+          "size": 40,
+          "origin": "self"
+        }
       },
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
@@ -14466,7 +16565,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Caltrops",
@@ -14476,7 +16580,12 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       }
     ],
     "class": "Fighter 5 (Champion)",
@@ -14549,6 +16658,7 @@
     "foundryId": "RiswynnLv0500000",
     "name": "Riswynn (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/riswynn.yml",
     "size": "medium",
@@ -14565,6 +16675,14 @@
       "int": 14,
       "wis": 12,
       "cha": 8
+    },
+    "saves": {
+      "str": false,
+      "dex": true,
+      "con": false,
+      "int": true,
+      "wis": false,
+      "cha": false
     },
     "resist": [
       "poison"
@@ -14590,7 +16708,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -14643,12 +16761,23 @@
       {
         "name": "Spill Ball Bearings",
         "img": "icons/weapons/ammunition/shot-round-brown.webp",
-        "reach": 5,
+        "range": {
+          "normal": 10,
+          "long": 10
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 10,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 10,
+          "origin": "point"
+        },
+        "conditions": [
+          "prone"
+        ]
       },
       {
         "name": "Poison",
@@ -14658,7 +16787,11 @@
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Trip",
@@ -14668,7 +16801,11 @@
         "saveAbility": "dex",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "poisoned",
+          "prone"
+        ]
       },
       {
         "name": "Cunning Sneak Attack",
@@ -14681,7 +16818,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 15,
@@ -14694,7 +16834,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Magic Missile",
@@ -14716,22 +16861,35 @@
       {
         "name": "Second Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
+        "range": {
+          "normal": 60,
+          "long": 60
+        },
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "blinded"
+        ]
       },
       {
         "name": "Third Command Word",
         "img": "icons/commodities/gems/gem-faceted-octagon-yellow.webp",
-        "reach": 5,
         "kind": "attack",
         "saveAbility": "con",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "blinded"
+        ]
       }
     ],
     "class": "Rogue 5 (Thief)",
@@ -14800,6 +16958,7 @@
     "foundryId": "SefrisLv05000000",
     "name": "Sefris (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/sefris.yml",
     "size": "medium",
@@ -14817,6 +16976,14 @@
       "wis": 8,
       "cha": 17
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": false,
+      "wis": true,
+      "cha": true
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -14831,7 +16998,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -14863,7 +17030,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -14876,20 +17046,30 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Start of Turn Save",
         "img": "icons/magic/air/fog-gas-smoke-dense-green.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 14,
         "onSave": "none",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        },
+        "conditions": [
+          "poisoned"
+        ]
       },
       {
         "name": "Suggestion",
@@ -14902,7 +17082,10 @@
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "charmed"
+        ]
       },
       {
         "name": "Hideous Laughter",
@@ -14915,7 +17098,11 @@
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Hideous Laughter (2)",
@@ -14928,7 +17115,11 @@
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "conditions": [
+          "incapacitated",
+          "prone"
+        ]
       },
       {
         "name": "Scorching Ray",
@@ -14965,10 +17156,7 @@
       {
         "name": "Bonus Hex Damage",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -14982,10 +17170,7 @@
       {
         "name": "Bonus Hex Damage (2)",
         "img": "icons/magic/symbols/star-yellow.webp",
-        "range": {
-          "normal": 90,
-          "long": 90
-        },
+        "reach": 5,
         "kind": "spell",
         "autoHit": true,
         "damage": [
@@ -15012,17 +17197,29 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Fear",
         "img": "icons/magic/unholy/silhouette-robe-evil-glow.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cone",
+          "size": 30,
+          "origin": "self"
+        },
+        "conditions": [
+          "frightened"
+        ]
       },
       {
         "name": "Hold Person",
@@ -15035,7 +17232,13 @@
         "saveAbility": "wis",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "targets": [
+          "humanoid"
+        ],
+        "conditions": [
+          "paralyzed"
+        ]
       },
       {
         "name": "Faerie Fire",
@@ -15048,7 +17251,12 @@
         "saveAbility": "dex",
         "saveDc": 14,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Command",
@@ -15066,7 +17274,6 @@
       {
         "name": "Burning Hands",
         "img": "icons/magic/fire/blast-jet-stream-embers-red.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "dex",
         "saveDc": 14,
@@ -15076,7 +17283,12 @@
             "dice": "3d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cone",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Bane",
@@ -15162,6 +17374,7 @@
     "foundryId": "ZannaLv050000000",
     "name": "Zanna (5)",
     "team": "player",
+    "type": "humanoid",
     "rules": "2024",
     "sourcePath": "packs/_source/actors24/premades/level-5/zanna.yml",
     "size": "small",
@@ -15179,6 +17392,14 @@
       "wis": 12,
       "cha": 10
     },
+    "saves": {
+      "str": false,
+      "dex": false,
+      "con": false,
+      "int": true,
+      "wis": true,
+      "cha": false
+    },
     "resist": [],
     "immune": [],
     "vuln": [],
@@ -15189,7 +17410,10 @@
       {
         "name": "Throw",
         "img": "icons/consumables/potions/bottle-bulb-empty-glass.webp",
-        "reach": 5,
+        "range": {
+          "normal": 20,
+          "long": 20
+        },
         "kind": "attack",
         "saveAbility": "dex",
         "saveDc": 13,
@@ -15202,7 +17426,12 @@
         "reach": 5,
         "kind": "spell",
         "autoHit": true,
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "square",
+          "size": 5,
+          "origin": "point"
+        }
       },
       {
         "name": "Spellcasting Attack",
@@ -15236,12 +17465,16 @@
             "dice": "2d4",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Thunderwave",
         "img": "icons/magic/sonic/explosion-shock-wave-teal.webp",
-        "reach": 5,
         "kind": "spell",
         "saveAbility": "con",
         "saveDc": 15,
@@ -15251,7 +17484,12 @@
             "dice": "2d8",
             "type": "thunder"
           }
-        ]
+        ],
+        "area": {
+          "type": "cube",
+          "size": 15,
+          "origin": "self"
+        }
       },
       {
         "name": "Slow",
@@ -15264,7 +17502,12 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "cube",
+          "size": 40,
+          "origin": "point"
+        }
       },
       {
         "name": "Ray of Frost",
@@ -15319,7 +17562,7 @@
           "normal": 20,
           "long": 60
         },
-        "reach": 5,
+        "reach": 20,
         "damage": [
           {
             "dice": "1d4",
@@ -15344,7 +17587,15 @@
         "saveAbility": "wis",
         "saveDc": 15,
         "onSave": "half",
-        "damage": []
+        "damage": [],
+        "area": {
+          "type": "sphere",
+          "size": 5,
+          "origin": "point"
+        },
+        "conditions": [
+          "incapacitated"
+        ]
       },
       {
         "name": "Scorching Ray",
@@ -15411,7 +17662,12 @@
             "dice": "8d6",
             "type": "fire"
           }
-        ]
+        ],
+        "area": {
+          "type": "sphere",
+          "size": 20,
+          "origin": "point"
+        }
       },
       {
         "name": "Enlarge/Reduce",
