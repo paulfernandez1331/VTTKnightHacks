@@ -2,13 +2,13 @@ const { GRID, feetBetween, squareDistance, insideRoom, areaSquares, coversSquare
 
 // Colors for the battlemat itself. The page chrome lives in style.css.
 const COLORS = {
-  mat: '#cfd6c8',
-  gridLine: '#8f9b88',
-  player: '#2f6f73',
-  monster: '#a2402f',
-  edge: '#1b2128',
-  select: '#fff3b8',
-  measure: '#c79a3b',
+  mat: '#252d27',
+  gridLine: 'rgba(183, 199, 176, 0.18)',
+  player: '#7fa58c',
+  monster: '#ce8276',
+  edge: '#0c1010',
+  select: '#d0af70',
+  measure: '#d0af70',
 };
 
 // Pass ?dm=CODE in the URL to join as the DM.
@@ -26,6 +26,14 @@ let commandWord = 'Halt';
 let spiritType = 'Radiant';
 let layAmount = 1;
 let tokenNodes = {}; // token id -> Konva group
+let gridLines = [];
+let gridVisible = true;
+let measureMode = false;
+let targetMode = false;
+let mapZoom = 1;
+let selectedProfileId = null;
+let logFilter = 'all';
+let panMode = false;
 
 // ---------- Stage and layers ----------
 
@@ -45,17 +53,63 @@ function drawGrid() {
   const width = GRID.cols * GRID.size;
   const height = GRID.rows * GRID.size;
 
-  gridLayer.add(new Konva.Rect({ x: 0, y: 0, width, height, fill: COLORS.mat }));
+  const terrain = new Image();
+  terrain.onload = () => {
+    const aspectRatio = width / height;
+    const sourceRatio = terrain.naturalWidth / terrain.naturalHeight;
+    const crop = sourceRatio > aspectRatio
+      ? {
+          x: (terrain.naturalWidth - terrain.naturalHeight * aspectRatio) / 2,
+          y: 0,
+          width: terrain.naturalHeight * aspectRatio,
+          height: terrain.naturalHeight,
+        }
+      : {
+          x: 0,
+          y: (terrain.naturalHeight - terrain.naturalWidth / aspectRatio) / 2,
+          width: terrain.naturalWidth,
+          height: terrain.naturalWidth / aspectRatio,
+        };
+    gridLayer.add(new Konva.Image({ x: 0, y: 0, width, height, image: terrain, crop }));
+    gridLayer.add(new Konva.Rect({
+      x: 0,
+      y: 0,
+      width,
+      height,
+      fill: 'rgba(12, 20, 17, 0.52)',
+      listening: false,
+    }));
+    gridLines.forEach((line) => gridLayer.add(line));
+    gridLayer.batchDraw();
+  };
+  terrain.onerror = () => {
+    console.error('Unable to load the BattleMat terrain image.');
+    gridLayer.add(new Konva.Rect({ x: 0, y: 0, width, height, fill: COLORS.mat }));
+    gridLines.forEach((line) => gridLayer.add(line));
+    gridLayer.batchDraw();
+  };
+  terrain.src = '/assets/terrain.png';
 
   for (let c = 0; c <= GRID.cols; c++) {
     const x = c * GRID.size;
-    gridLayer.add(new Konva.Line({ points: [x, 0, x, height], stroke: COLORS.gridLine, strokeWidth: 1 }));
+    gridLines.push(new Konva.Line({
+      points: [x, 0, x, height],
+      stroke: COLORS.gridLine,
+      strokeWidth: 1,
+      visible: gridVisible,
+      listening: false,
+    }));
   }
   for (let r = 0; r <= GRID.rows; r++) {
     const y = r * GRID.size;
-    gridLayer.add(new Konva.Line({ points: [0, y, width, y], stroke: COLORS.gridLine, strokeWidth: 1 }));
+    gridLines.push(new Konva.Line({
+      points: [0, y, width, y],
+      stroke: COLORS.gridLine,
+      strokeWidth: 1,
+      visible: gridVisible,
+      listening: false,
+    }));
   }
-  gridLayer.batchDraw();
 }
 
 // An armed area spell casts at the square under the pointer. Otherwise, empty mat clears the selection.
@@ -107,9 +161,9 @@ function snapPixels(pos, token) {
 }
 
 function hpColor(pct) {
-  if (pct > 0.5) return '#6aa84f';
-  if (pct > 0.25) return '#d6a032';
-  return '#c0432f';
+  if (pct > 0.5) return '#7fa58c';
+  if (pct > 0.25) return '#d0af70';
+  return '#ce8276';
 }
 
 // Selected wins over the turn highlight, which wins over the plain edge.
@@ -151,7 +205,7 @@ function makeToken(token) {
   const group = new Konva.Group({
     x: token.x * cell,
     y: token.y * cell,
-    draggable: canMove(token),
+    draggable: canMove(token) && !panMode,
     dragBoundFunc: (pos) => snapPixels(pos, token),
     opacity: token.defeated ? 0.35 : 1,
   });
@@ -197,12 +251,49 @@ function makeToken(token) {
     }));
   }
 
-  // Small HP bar along the bottom. Hidden when the viewer is not allowed to see HP.
+  // HP is shown below the portrait and remains hidden from viewers without permission.
   if (token.hp !== null && token.maxHp) {
     const pct = Math.max(0, token.hp / token.maxHp);
-    group.add(new Konva.Rect({ x: 6, y: height - 9, width: width - 12, height: 5, fill: '#3b4450', listening: false }));
-    group.add(new Konva.Rect({ x: 6, y: height - 9, width: (width - 12) * pct, height: 5, fill: hpColor(pct), listening: false }));
+    const barWidth = Math.max(28, width - 8);
+    const barX = (width - barWidth) / 2;
+    group.add(new Konva.Rect({
+      x: barX,
+      y: height + 2,
+      width: barWidth,
+      height: 4,
+      fill: '#0c1010',
+      cornerRadius: 3,
+      listening: false,
+    }));
+    group.add(new Konva.Rect({
+      x: barX,
+      y: height + 2,
+      width: barWidth * pct,
+      height: 4,
+      fill: hpColor(pct),
+      cornerRadius: 3,
+      listening: false,
+    }));
   }
+
+  const tagText = new Konva.Text({
+    text: token.name,
+    fontSize: 10,
+    fontStyle: 'bold',
+    fill: '#eeece5',
+    padding: 6,
+    align: 'center',
+  });
+  const labelWidth = Math.max(width + 20, tagText.width());
+  const label = new Konva.Label({
+    x: (width - labelWidth) / 2,
+    y: height + 9,
+    listening: true,
+  });
+  label.add(new Konva.Tag({ fill: '#0c1010', cornerRadius: 4 }));
+  tagText.width(labelWidth);
+  label.add(tagText);
+  group.add(label);
 
   group.name('battle-token');
   group.setAttr('tokenId', token.id);
@@ -212,7 +303,7 @@ function makeToken(token) {
       if (armed) castArmed();
       return;
     }
-    selectToken(token.id, e.evt.shiftKey);
+    selectToken(token.id, e.evt.shiftKey || measureMode || targetMode);
   });
   group.on('dragmove', updateMeasure);
   group.on('dragend', () => {
@@ -238,14 +329,24 @@ function renderTokens() {
   updateMeasure();
 }
 
+function revealSelectionPanel() {
+  const panel = document.querySelector('.panel');
+  const card = document.querySelector('.selection-card');
+  if (!panel || !card || !selected.length) return;
+  const top = card.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 8;
+  panel.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+
 function selectToken(id, additive) {
   if (additive && selected.length > 0 && selected[0] !== id) {
     selected = [selected[0], id];
   } else {
     selected = [id];
   }
+  if (selected.length === 2) targetMode = false;
   renderTokens();
   renderPanel();
+  revealSelectionPanel();
 }
 
 // ---------- Distance ----------
@@ -321,6 +422,19 @@ function el(tag, text, className) {
 }
 
 const ROSTER_LIMIT = 24;
+let rosterMessageTimer = null;
+
+function showRosterMessage(message, isError = false) {
+  const box = document.getElementById('roster-msg');
+  box.textContent = message;
+  box.classList.toggle('error', isError);
+  if (rosterMessageTimer) clearTimeout(rosterMessageTimer);
+  if (message && !isError) {
+    rosterMessageTimer = setTimeout(() => {
+      box.textContent = '';
+    }, 3500);
+  }
+}
 
 function rosterLabel(creature) {
   return creature.class ? `${creature.name} · ${creature.class}` : creature.name;
@@ -346,7 +460,27 @@ function renderRoster() {
 
   matches.slice(0, ROSTER_LIMIT).forEach((creature) => {
     const button = el('button', rosterLabel(creature), creature.team);
-    button.addEventListener('click', () => socket.emit('token:add', { creatureId: creature.id }));
+    button.type = 'button';
+    button.addEventListener('click', () => {
+      button.disabled = true;
+      showRosterMessage(`Adding ${creature.name}…`);
+      socket.timeout(5000).emit('token:add', { creatureId: creature.id }, (error, result) => {
+        button.disabled = false;
+        if (error) {
+          showRosterMessage('Could not reach the game server. Check the connection and try again.', true);
+          return;
+        }
+        if (!result || !result.ok) {
+          showRosterMessage(result?.error || 'The server did not confirm that the creature was added.', true);
+          return;
+        }
+        selected = [result.tokenId];
+        showRosterMessage(`${creature.name} added to the map.`);
+        renderTokens();
+        renderPanel();
+        revealSelectionPanel();
+      });
+    });
     box.appendChild(button);
   });
 
@@ -381,15 +515,42 @@ function renderDetail() {
   }
 
   const c = state.creatures[token.creatureId];
+  const summary = el('div', undefined, 'detail-summary');
   if (c.token) {
     const portrait = document.createElement('img');
     portrait.className = 'portrait';
     portrait.alt = '';
     portrait.src = imageAddress(c.token);
-    box.appendChild(portrait);
+    summary.appendChild(portrait);
   }
-  box.appendChild(el('p', token.name, 'detail-name'));
-  box.appendChild(el('p', c.class || c.size || '', 'detail-sub'));
+  const identity = el('div', undefined, 'detail-identity');
+  identity.appendChild(el('p', token.name, 'detail-name'));
+  identity.appendChild(el('p', c.class || c.size || '', 'detail-sub'));
+  summary.appendChild(identity);
+  box.appendChild(summary);
+
+  const health = el('div', undefined, 'selected-health');
+  const healthSummary = el('div', undefined, 'health-summary');
+  healthSummary.appendChild(el('span', 'Health'));
+  healthSummary.appendChild(el('span', token.hp === null ? 'Not supplied' : `${token.hp} / ${token.maxHp}`));
+  health.appendChild(healthSummary);
+  if (token.hp !== null && token.maxHp) {
+    const track = el('div', undefined, 'health-track');
+    const fill = el('span', undefined, 'health-fill');
+    fill.style.width = `${Math.max(0, Math.min(100, (token.hp / token.maxHp) * 100))}%`;
+    track.appendChild(fill);
+    health.appendChild(track);
+  } else {
+    health.appendChild(el('div', undefined, 'health-track'));
+  }
+  box.appendChild(health);
+
+  const more = el('details', undefined, 'detail-more');
+  const moreSummary = el('summary', 'Stats, features and token controls');
+  more.appendChild(moreSummary);
+  const advanced = el('div', undefined, 'detail-advanced');
+  more.appendChild(advanced);
+  box.appendChild(more);
 
   // Monster stats stay hidden from players, so only show what we were sent.
   const stats = el('div', undefined, 'stats');
@@ -401,13 +562,13 @@ function renderDetail() {
       stats.appendChild(statBox(name.toUpperCase(), score));
     });
   }
-  box.appendChild(stats);
+  advanced.appendChild(stats);
 
   if (c.conditionImmune && c.conditionImmune.length && (state.isDM || token.team === 'player')) {
-    box.appendChild(el('p', `Immune to conditions: ${c.conditionImmune.join(', ')}`, 'defenses'));
+    advanced.appendChild(el('p', `Immune to conditions: ${c.conditionImmune.join(', ')}`, 'defenses'));
   }
   const concentration = (token.marks || []).find((mark) => mark.name === 'concentration');
-  if (concentration) box.appendChild(el('p', `Concentrating on ${concentration.spell}`, 'defenses'));
+  if (concentration) advanced.appendChild(el('p', `Concentrating on ${concentration.spell}`, 'defenses'));
 
   if (c.resist || c.immune || c.vuln) {
     const lines = [
@@ -417,14 +578,14 @@ function renderDetail() {
     ];
     lines.forEach(([label, list]) => {
       if (list && list.length > 0) {
-        box.appendChild(el('p', `${label}: ${list.join(', ')}`, 'defenses'));
+        advanced.appendChild(el('p', `${label}: ${list.join(', ')}`, 'defenses'));
       }
     });
   }
 
   const conditions = token.conditions || [];
   if (conditions.length > 0) {
-    box.appendChild(el('p', 'Conditions', 'defenses'));
+    advanced.appendChild(el('p', 'Conditions', 'defenses'));
     conditions.forEach((name) => {
       const row = el('div', undefined, 'condition-row');
       row.appendChild(el('span', conditionLabel(name)));
@@ -436,7 +597,7 @@ function renderDetail() {
         });
         row.appendChild(remove);
       }
-      box.appendChild(row);
+      advanced.appendChild(row);
     });
   }
 
@@ -457,7 +618,7 @@ function renderDetail() {
     });
     row.appendChild(toggle);
     if (open) row.appendChild(el('p', feature.summary, 'feature-body'));
-    box.appendChild(row);
+    advanced.appendChild(row);
   });
 
   if (state.isDM && token.hp !== null) {
@@ -471,11 +632,11 @@ function renderDetail() {
     setHp.addEventListener('click', () => socket.emit('token:set-hp', { id: token.id, hp: Number(hpInput.value) }));
     hpRow.appendChild(hpInput);
     hpRow.appendChild(setHp);
-    box.appendChild(hpRow);
+    advanced.appendChild(hpRow);
 
     const restore = el('button', 'Restore HP');
     restore.addEventListener('click', () => socket.emit('token:restore', { id: token.id }));
-    box.appendChild(restore);
+    advanced.appendChild(restore);
 
     Object.entries(token.uses || {}).forEach(([key, bag]) => {
       const row = el('div', undefined, 'condition-row');
@@ -484,7 +645,7 @@ function renderDetail() {
       back.type = 'button';
       back.addEventListener('click', () => socket.emit('token:restore-use', { id: token.id, key }));
       row.appendChild(back);
-      box.appendChild(row);
+      advanced.appendChild(row);
     });
 
     const remove = el('button', 'Remove token', 'danger');
@@ -492,7 +653,7 @@ function renderDetail() {
       socket.emit('token:remove', { id: token.id });
       selected = selected.filter((id) => id !== token.id);
     });
-    box.appendChild(remove);
+    advanced.appendChild(remove);
   }
 }
 
@@ -968,13 +1129,26 @@ function drawZones() {
 function renderLog() {
   const box = document.getElementById('log');
   box.replaceChildren();
+  const entries = state.log.slice().reverse();
+  document.getElementById('log-count').textContent =
+    `${state.log.length} ${state.log.length === 1 ? 'entry' : 'new entries'}`;
+  const visible = entries.filter((entry) => {
+    if (logFilter === 'attacks') return Boolean(entry.outcome);
+    if (logFilter === 'damage') {
+      return entry.lines.some((line) => /damage|hit point|\bhp\b/i.test(line));
+    }
+    return true;
+  });
 
-  if (state.log.length === 0) {
-    box.appendChild(el('p', 'No attacks yet.', 'detail-sub'));
+  if (visible.length === 0) {
+    const message = state.log.length === 0
+      ? 'Awaiting the next action. Attack results and damage will appear here.'
+      : 'No entries match this filter.';
+    box.appendChild(el('p', message, 'detail-sub'));
     return;
   }
 
-  state.log.slice().reverse().forEach((entry) => {
+  visible.forEach((entry) => {
     const item = el('div', undefined, `log-entry ${entry.outcome}`);
     entry.lines.forEach((line, index) => {
       item.appendChild(el('p', line, index === 0 ? 'log-head' : 'log-line'));
@@ -983,13 +1157,90 @@ function renderLog() {
   });
 }
 
+function renderPlayerProfile() {
+  const players = state.tokens.filter((token) => token.team === 'player');
+  const tabs = document.getElementById('profile-player-tabs');
+  const content = document.getElementById('profile-content');
+  tabs.replaceChildren();
+  content.replaceChildren();
+
+  if (!players.some((token) => token.id === selectedProfileId)) {
+    selectedProfileId = players.length ? players[0].id : null;
+  }
+
+  players.forEach((token, index) => {
+    const button = el('button', token.name || `Player ${index + 1}`);
+    button.type = 'button';
+    button.className = token.id === selectedProfileId ? 'active' : '';
+    button.setAttribute('aria-pressed', token.id === selectedProfileId ? 'true' : 'false');
+    button.addEventListener('click', () => {
+      selectedProfileId = token.id;
+      renderPlayerProfile();
+    });
+    tabs.appendChild(button);
+  });
+
+  const token = players.find((entry) => entry.id === selectedProfileId);
+  if (!token) {
+    tabs.hidden = true;
+    content.appendChild(el('p', 'Add a player token to view a profile.', 'detail-sub'));
+    return;
+  }
+
+  tabs.hidden = false;
+  const creature = state.creatures[token.creatureId] || {};
+  const info = el('div', undefined, 'profile-information');
+  info.appendChild(el('span', `${creature.size || 'Character'} · ${creature.class || 'Player'}`));
+  const fullProfile = el('a', 'Full profile ↗');
+  fullProfile.href = '#player-profile';
+  info.appendChild(fullProfile);
+  content.appendChild(info);
+
+  const hpLabel = el('div', undefined, 'profile-health-label');
+  hpLabel.appendChild(el('span', 'Hit points'));
+  hpLabel.appendChild(el('strong', token.hp === null ? 'Not supplied' : `${token.hp} / ${token.maxHp}`));
+  content.appendChild(hpLabel);
+
+  const track = el('div', undefined, 'health-track profile-health-track');
+  if (token.hp !== null && token.maxHp) {
+    const fill = el('span', undefined, 'health-fill');
+    fill.style.width = `${Math.max(0, Math.min(100, (token.hp / token.maxHp) * 100))}%`;
+    track.appendChild(fill);
+  }
+  content.appendChild(track);
+
+  const stats = el('div', undefined, 'profile-stats');
+  [
+    ['Armor class', creature.ac === undefined ? '—' : creature.ac],
+    ['Speed', creature.speed === undefined ? '—' : `${creature.speed} ft`],
+    ['Proficiency', creature.proficiency === undefined ? '—' : `+${creature.proficiency}`],
+  ].forEach(([label, value]) => {
+    const stat = el('div', undefined, 'profile-stat');
+    stat.appendChild(el('strong', String(value)));
+    stat.appendChild(el('span', label));
+    stats.appendChild(stat);
+  });
+  content.appendChild(stats);
+}
+
 function renderPanel() {
   document.getElementById('role').textContent = state.isDM ? 'Dungeon Master view' : 'Player view';
+  const attacker = tokenById(selected[0]);
+  const target = tokenById(selected[1]);
+  document.getElementById('selected-title').textContent = attacker ? attacker.name : 'Select a token';
+  document.getElementById('selection-context').textContent =
+    attacker ? `${attacker.name}  ·  Selected` : '';
+  document.getElementById('target-label').textContent =
+    target ? `Target: ${target.name}` : (targetMode ? 'Choose a target on the map' : 'No target selected');
+  document.getElementById('choose-target').classList.toggle('is-active', targetMode);
+  document.getElementById('choose-target').querySelector('span').textContent =
+    targetMode ? 'Click a target on the map' : 'Choose target on map';
   renderRoster();
-  renderInitiative();
   renderAttack();
   renderLog();
   renderDetail();
+  renderPlayerProfile();
+  renderInitiative();
   drawZones();
 }
 
@@ -1039,6 +1290,7 @@ socket.on('character:import:ok', ({ tokenId }) => {
   selected = [tokenId];
   renderTokens();
   renderPanel();
+  revealSelectionPanel();
 });
 
 const rosterSearch = document.getElementById('roster-search');
@@ -1051,10 +1303,124 @@ rosterSearch.addEventListener('keydown', (event) => {
   first.click();
 });
 
+const mapViewport = document.getElementById('map-viewport');
+const boardScaler = document.getElementById('board-scaler');
+function fitBoard() {
+  const boardWidth = GRID.cols * GRID.size;
+  const boardHeight = GRID.rows * GRID.size;
+  const scale = Math.min(
+    mapViewport.clientWidth / boardWidth,
+    mapViewport.clientHeight / boardHeight,
+  ) * mapZoom;
+  boardScaler.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  document.getElementById('zoom-level').textContent = `${Math.round(mapZoom * 100)}%`;
+}
+
+document.getElementById('grid-toggle').addEventListener('click', (event) => {
+  gridVisible = !gridVisible;
+  gridLines.forEach((line) => line.visible(gridVisible));
+  gridLayer.batchDraw();
+  event.currentTarget.setAttribute('aria-pressed', String(gridVisible));
+});
+
+function setMeasureMode(enabled) {
+  measureMode = enabled;
+  document.getElementById('measure-toggle').setAttribute('aria-pressed', String(enabled));
+  document.querySelector('[data-map-tool="measure"]').classList.toggle('active', enabled);
+  document.getElementById('distance').classList.toggle('measure-active', enabled);
+}
+
+document.getElementById('measure-toggle').addEventListener('click', () => {
+  setMeasureMode(!measureMode);
+  if (!measureMode) {
+    selected = selected.slice(0, 1);
+    renderTokens();
+    renderPanel();
+  }
+});
+
+document.getElementById('center-map').addEventListener('click', () => {
+  mapZoom = 1;
+  stage.position({ x: 0, y: 0 });
+  mapViewport.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+  fitBoard();
+});
+
+document.getElementById('zoom-in').addEventListener('click', () => {
+  mapZoom = Math.min(1.5, Math.round((mapZoom + 0.1) * 10) / 10);
+  fitBoard();
+});
+document.getElementById('zoom-out').addEventListener('click', () => {
+  mapZoom = Math.max(0.7, Math.round((mapZoom - 0.1) * 10) / 10);
+  fitBoard();
+});
+
+document.querySelectorAll('[data-map-tool]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const tool = button.dataset.mapTool;
+    panMode = tool === 'pan';
+    stage.draggable(panMode);
+    document.querySelectorAll('[data-map-tool]').forEach((item) => {
+      item.classList.toggle('active', item === button);
+    });
+    if (tool === 'measure') setMeasureMode(!measureMode);
+    if (tool === 'select') {
+      setMeasureMode(false);
+      targetMode = false;
+      renderPanel();
+    }
+    if (tool === 'pan') {
+      setMeasureMode(false);
+      targetMode = false;
+      renderPanel();
+    }
+    renderTokens();
+  });
+});
+
+document.getElementById('choose-target').addEventListener('click', () => {
+  if (selected.length === 0) {
+    document.getElementById('attack-msg').textContent = 'Select an attacker first.';
+    return;
+  }
+  targetMode = !targetMode;
+  renderPanel();
+});
+
+document.getElementById('clear-search').addEventListener('click', () => {
+  rosterSearch.value = '';
+  rosterSearch.focus();
+  renderRoster();
+});
+
+document.getElementById('collapse-roster').addEventListener('click', (event) => {
+  const card = event.currentTarget.closest('.add-map-card');
+  const collapsed = card.classList.toggle('collapsed');
+  event.currentTarget.textContent = collapsed ? '+' : '−';
+  event.currentTarget.setAttribute('aria-label', collapsed ? 'Expand add to map' : 'Collapse add to map');
+});
+
+document.getElementById('token-menu').addEventListener('click', () => {
+  const more = document.querySelector('#detail .detail-more');
+  if (more) more.open = !more.open;
+});
+
+document.querySelectorAll('[data-log-filter]').forEach((button) => {
+  button.addEventListener('click', () => {
+    logFilter = button.dataset.logFilter;
+    document.querySelectorAll('[data-log-filter]').forEach((item) => {
+      item.classList.toggle('active', item === button);
+    });
+    renderLog();
+  });
+});
+
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape' || !armed) return;
   event.preventDefault();
   disarm();
 });
 
+window.addEventListener('resize', fitBoard);
 drawGrid();
+fitBoard();

@@ -3,54 +3,144 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Battlemat</title>
+  <title>BattleMat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="layout">
-    <section class="board-wrap">
-      <div id="board"></div>
+  <header class="workspace-header">
+    <div class="workspace-identity">
+      <div class="tabletop-emblem" aria-hidden="true">⚄</div>
+      <div class="workspace-title">
+        <h1>BattleMat</h1>
+        <p id="role" class="role"></p>
+      </div>
+      <span class="header-divider" aria-hidden="true"></span>
+      <nav class="workspace-nav" aria-label="Workspace">
+        <a class="nav-link active" href="#battle">Battle</a>
+        <a class="nav-link" href="#player-profile">Player profiles</a>
+      </nav>
+    </div>
+    <div class="workspace-actions">
+      <span class="preview-label">Battle interface preview</span>
+      <details class="initiative-menu">
+        <summary>Combat settings</summary>
+        <div id="initiative"></div>
+      </details>
+      <span class="user-avatar" aria-label="Dungeon Master">DM</span>
+    </div>
+  </header>
+
+  <main class="layout" id="battle">
+    <section class="board-column" aria-label="Battle map and combat log">
+      <section class="map-card">
+        <div class="map-toolbar">
+          <div class="map-heading">
+            <span class="map-heading-icon" aria-hidden="true">▧</span>
+            <span class="map-heading-title">MAP</span>
+            <span class="map-subtitle">Illustrative terrain</span>
+          </div>
+          <div class="map-controls">
+            <button id="grid-toggle" class="toolbar-button" type="button" aria-pressed="true">▦ <span>Grid</span></button>
+            <button id="measure-toggle" class="toolbar-button" type="button" aria-pressed="false">⌁ <span>Distance</span></button>
+            <button id="center-map" class="toolbar-button" type="button">⛶ <span>Center map</span></button>
+          </div>
+        </div>
+        <div id="map-viewport" class="map-viewport">
+          <div id="board-scaler" class="board-scaler">
+            <div id="board"></div>
+          </div>
+          <div id="selection-context" class="selection-context" aria-live="polite"></div>
+          <div class="map-tool-rail" aria-label="Map tools">
+            <button class="map-tool active" type="button" data-map-tool="select" aria-label="Select tokens" title="Select tokens">↖</button>
+            <button class="map-tool" type="button" data-map-tool="pan" aria-label="Pan map" title="Pan map">✋</button>
+            <button class="map-tool" type="button" data-map-tool="measure" aria-label="Measure distance" title="Measure distance">⌁</button>
+          </div>
+          <div class="zoom-controls" aria-label="Map zoom controls">
+            <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+            <span id="zoom-level">100%</span>
+            <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          </div>
+          <p class="map-caption">Click a token to select it. Shift-click another token to measure or choose a target.</p>
+        </div>
+        <footer class="map-footer">
+          <p id="distance" class="distance">Click a token, then shift-click another to measure distance.</p>
+          <div class="token-legend">
+            <span><i class="legend-dot player-dot"></i>Players</span>
+            <span><i class="legend-dot enemy-dot"></i>Enemies</span>
+          </div>
+        </footer>
+      </section>
+
+      <section class="combat-log-card" aria-labelledby="combat-log-title">
+        <div class="combat-log-header">
+          <div class="log-title-group">
+            <span class="log-icon" aria-hidden="true">▤</span>
+            <h2 id="combat-log-title">Combat log</h2>
+            <span id="log-count" class="log-count">0 new entries</span>
+          </div>
+          <div class="log-filters" role="group" aria-label="Combat log filter">
+            <button class="log-filter active" type="button" data-log-filter="all">All activity</button>
+            <button class="log-filter" type="button" data-log-filter="attacks">Attacks</button>
+            <button class="log-filter" type="button" data-log-filter="damage">Damage</button>
+          </div>
+        </div>
+        <div id="log" class="log"></div>
+      </section>
     </section>
 
-    <aside class="panel">
-      <h1>Battlemat</h1>
-      <p id="role" class="role"></p>
-
-      <section>
-        <h2>Add to map</h2>
+    <aside class="panel" aria-label="Battle controls">
+      <section class="panel-card add-map-card">
+        <div class="section-heading">
+          <h2>Add to Map</h2>
+          <button id="collapse-roster" class="icon-button" type="button" aria-label="Collapse add to map">−</button>
+        </div>
         <form id="import-form" class="import-form">
-          <input id="import-url" class="roster-search" type="text" placeholder="D&amp;D Beyond link or character ID" autocomplete="off">
-          <button type="submit">Add</button>
+          <input id="import-url" class="roster-search import-input" type="text" placeholder="D&amp;D Beyond link or character" autocomplete="off" aria-label="D&D Beyond link or character ID">
+          <button class="import-submit" type="submit" aria-label="Import character">→</button>
         </form>
         <p id="import-msg" class="import-msg" role="alert"></p>
-        <input id="roster-search" class="roster-search" type="search" placeholder="Name, class, or level" autocomplete="off">
+        <p id="roster-msg" class="roster-msg" role="status" aria-live="polite"></p>
+        <label class="search-field">
+          <span aria-hidden="true">⌕</span>
+          <input id="roster-search" class="roster-search" type="search" placeholder="Search creatures" autocomplete="off" aria-label="Search creatures by name, class, or level">
+          <button id="clear-search" class="clear-search" type="button" aria-label="Clear search">×</button>
+        </label>
         <div id="roster" class="roster"></div>
       </section>
 
-      <section>
-        <h2>Initiative</h2>
-        <div id="initiative"></div>
-      </section>
-
-      <section>
-        <h2>Distance</h2>
-        <p id="distance" class="distance"></p>
-      </section>
-
-      <section>
-        <h2>Attack</h2>
+      <section class="panel-card selection-card" aria-labelledby="selected-title">
+        <div class="section-heading">
+          <div class="selected-heading">
+            <span class="selected-shield" aria-hidden="true">◇</span>
+            <div>
+              <span class="eyebrow">Selected token</span>
+              <h2 id="selected-title">Select a token</h2>
+            </div>
+          </div>
+          <button id="token-menu" class="icon-button" type="button" aria-label="Token options" title="Token options">···</button>
+        </div>
+        <div id="detail"></div>
+        <div class="attack-divider"></div>
+        <div class="attack-heading">
+          <h3>Attack</h3>
+          <span>Choose a move</span>
+        </div>
         <div id="attack-actions" class="attack-actions"></div>
         <p id="attack-msg" class="attack-msg" role="alert"></p>
+        <div class="target-state">
+          <span aria-hidden="true">⌖</span>
+          <span id="target-label">No target selected</span>
+        </div>
+        <button id="choose-target" class="choose-target" type="button">↖ <span>Choose target on map</span></button>
       </section>
 
-      <section>
-        <h2>Combat log</h2>
-        <div id="log" class="log"></div>
-      </section>
-
-      <section>
-        <h2>Selected token</h2>
-        <div id="detail"></div>
+      <section id="player-profile" class="panel-card player-profile-card" aria-labelledby="profile-title">
+        <div class="profile-heading">
+          <h2 id="profile-title">Player Profile</h2>
+          <span>SAMPLE DATA</span>
+        </div>
+        <div id="profile-player-tabs" class="profile-player-tabs"></div>
+        <div id="profile-content"></div>
       </section>
     </aside>
   </main>

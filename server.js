@@ -431,14 +431,32 @@ io.on('connection', (socket) => {
   socket.data.isDM = socket.handshake.auth.dmCode === DM_CODE;
   socket.emit('state', buildState(socket.data.isDM));
 
-  socket.on('token:add', ({ creatureId }) => {
+  socket.on('token:add', (payload = {}, acknowledge = () => {}) => {
+    const { creatureId } = payload;
     const c = catalog[creatureId];
-    if (!c) return;
+    const reply = (result) => {
+      if (typeof acknowledge === 'function') acknowledge(result);
+    };
+    if (!c) {
+      reply({ ok: false, error: 'That creature is no longer available. Refresh and try again.' });
+      return;
+    }
     // Players can only place characters, and each character only once.
-    if (!socket.data.isDM && c.team !== 'player') return;
-    if (c.team === 'player' && board.tokens.some((t) => t.creatureId === c.id)) return;
-    if (!placeCreature(c)) return;
+    if (!socket.data.isDM && c.team !== 'player') {
+      reply({ ok: false, error: 'Only the Dungeon Master can add creatures. Open the DM link to place enemies.' });
+      return;
+    }
+    if (c.team === 'player' && board.tokens.some((t) => t.creatureId === c.id)) {
+      reply({ ok: false, error: 'That character is already on the map.' });
+      return;
+    }
+    const token = placeCreature(c);
+    if (!token) {
+      reply({ ok: false, error: 'The map has no open squares large enough for this creature.' });
+      return;
+    }
     broadcast();
+    reply({ ok: true, tokenId: token.id });
   });
 
   socket.on('character:import', async ({ url }) => {
